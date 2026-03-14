@@ -1639,8 +1639,27 @@ def read_from_file(
 
 
 def write_to_file(input_otio, filepath, **kwargs):
+    import datetime
+    import uuid
 
     with aaf2.open(filepath, "w") as f:
+        # Set Header properties to match DaVinci Resolve output
+        # This is important for Pro Tools compatibility
+        f.header['OperationalPattern'].value = aaf2.auid.AUID("0d011201-0100-0000-060e-2b3404010105")
+        
+        # Replace the default PyAAF Identification with DaVinci Resolve
+        # Clear existing and add our own
+        f.header['IdentificationList'].value.clear()
+        
+        ident = f.create.Identification()
+        ident['CompanyName'].value = "Blackmagic Design"
+        ident['ProductName'].value = "DaVinci Resolve"
+        ident['ProductVersionString'].value = "19.0.0.000"
+        ident['ProductID'].value = aaf2.auid.AUID("00000030-0000-0000-6078-0bb91f020000")
+        ident['Date'].value = datetime.datetime.now()
+        ident['Platform'].value = "AAFSDK (Win32)"
+        ident['GenerationAUID'].value = uuid.uuid4()
+        f.header['IdentificationList'].append(ident)
 
         timeline = aaf_writer._stackify_nested_groups(input_otio)
 
@@ -1652,7 +1671,18 @@ def write_to_file(input_otio, filepath, **kwargs):
             raise otio.exceptions.NotSupportedError(
                 "Currently only supporting top level Timeline")
 
+        # Add timecode track FIRST to ensure it's at slot position 1
+        # This is required for compatibility with DaVinci Resolve and Pro Tools.
         default_edit_rate = None
+        if timeline.global_start_time:
+            default_edit_rate = timeline.global_start_time.rate
+        elif len(timeline.tracks) > 0 and len(timeline.tracks[0]) > 0:
+            default_edit_rate = timeline.tracks[0][0].duration().rate
+
+        if default_edit_rate or timeline.global_start_time:
+            otio2aaf.add_timecode_first(timeline, default_edit_rate)
+
+        # Now process all tracks
         for otio_track in timeline.tracks:
             # Ensure track must have clip to get the edit_rate
             if len(otio_track) == 0:
@@ -1667,7 +1697,41 @@ def write_to_file(input_otio, filepath, **kwargs):
                 if result:
                     transcriber.sequence.components.append(result)
 
-        # Always add a timecode track to the main composition mob.
-        # This is required for compatibility with DaVinci Resolve.
-        if default_edit_rate or input_otio.global_start_time:
-            otio2aaf.add_timecode(input_otio, default_edit_rate)
+            # Update sequence length after all components are added
+            if hasattr(transcriber, 'sequence') and transcriber.sequence:
+                transcriber.sequence.length = sum(
+                    comp.length for comp in transcriber.sequence.components
+                )
+
+            # For audio tracks, add a filler at the end to match video duration
+            # This is what DaVinci Resolve does for compatibility
+            if transcriber.media_kind == "sound":
+                # Calculate filler length: round up to nearest video frame boundary
+                audio_sampling_rate = getattr(transcriber, 'audio_sampling_rate', 48000)
+                current_length = transcriber.sequence.length
+                
+                # Calculate expected video frames
+                video_frames = current_length / audio_sampling_rate * default_edit_rate
+                rounded_frames = int(video_frames) + 1  # Round up
+                
+                # Calculate expected audio length
+                expected_audio_length = int(rounded_frames / default_edit_rate * audio_sampling_rate)
+                
+                # Add filler if needed
+                filler_length = expected_audio_length - current_length
+                if filler_length > 0 and filler_length < 100000:  # Sanity check: filler should be reasonable
+                    filler = f.create.Filler("sound", filler_length)
+                    transcriber.sequence.components.append(filler)
+                    transcriber.sequence.length = current_length + filler_length
+
+            # Update operation group length for audio tracks if applicable
+            if hasattr(transcriber, 'timeline_mobslot') and transcriber.timeline_mobslot:
+                slot_segment = transcriber.timeline_mobslot.segment
+                if hasattr(slot_segment, 'length') and hasattr(slot_segment, 'segments'):
+                    # This is an OperationGroup
+                    slot_segment.length = sum(
+                        seg.length for seg in slot_segment.segments
+                    )
+
+        # Append all mobs in the correct order (CompositionMob -> MasterMob -> TapeDescriptor -> WAVEDescriptor)
+        otio2aaf.append_all_mobs()
