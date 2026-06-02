@@ -82,6 +82,16 @@ class AAFValidationError(AAFAdapterError):
     pass
 
 
+def _patch_mob_id_prefix(mob):
+    """Rewrite MobID bytes 8-11 from pyaaf2 default (01010f20) to DaVinci Resolve (01010d43)."""
+    mid = mob.mob_id
+    mid.bytes_le[8] = 0x01
+    mid.bytes_le[9] = 0x01
+    mid.bytes_le[10] = 0x0d
+    mid.bytes_le[11] = 0x43
+    mob.mob_id = mid
+
+
 class AAFFileTranscriber:
     """
     AAFFileTranscriber
@@ -169,6 +179,7 @@ class AAFFileTranscriber:
             mastermob = self.aaf_file.create.MasterMob()
             mastermob.name = otio_clip.name
             mastermob.mob_id = aaf2.mobid.MobID(mob_id)
+            _patch_mob_id_prefix(mastermob)
             self._unique_mastermobs[mob_id] = mastermob
             self._mobs_to_append.append(('master', mastermob))
 
@@ -189,6 +200,7 @@ class AAFFileTranscriber:
             tapemob = self.aaf_file.create.SourceMob()
             tapemob.name = ""  # TapeDescriptor SourceMob has empty name
             tapemob.descriptor = self.aaf_file.create.TapeDescriptor()
+            _patch_mob_id_prefix(tapemob)
             self._unique_tapemobs[mob_id] = tapemob
             self._mobs_to_append.append(('tape', tapemob))
             
@@ -210,6 +222,7 @@ class AAFFileTranscriber:
 
             tape_timecode_slot.segment.start = int(timecode_start)
             tape_timecode_slot.segment.length = int(timecode_length)
+            tape_timecode_slot["PhysicalTrackNumber"].value = 1
 
         return tapemob
 
@@ -238,12 +251,13 @@ class AAFFileTranscriber:
             start = 0
 
         # Calculate timecode length based on timeline duration
+        # +1 to match DaVinci Resolve's behavior (inclusive end frame)
         timeline_duration = input_otio.duration()
-        timecode_length = int(timeline_duration.value)
+        timecode_length = int(timeline_duration.value) + 1
 
         # Create the timecode slot with SlotID=1 (first slot)
         slot = self.compositionmob.create_timeline_slot(edit_rate, slot_id=1)
-        slot.name = "TC"
+        slot.name = ""
 
         # indicated that this is the primary timecode track
         slot["PhysicalTrackNumber"].value = 1
@@ -680,7 +694,8 @@ class _TrackTranscriber:
             slot_edit_rate = getattr(self, 'audio_sampling_rate', 48000)
 
         tapemob_slot = tapemob.create_empty_slot(slot_edit_rate, self.media_kind)
-        
+        tapemob_slot["PhysicalTrackNumber"].value = 1
+
         # Calculate length in appropriate units
         if self.media_kind == "sound":
             # Audio: length in samples
@@ -709,6 +724,7 @@ class _TrackTranscriber:
             filemob = self.aaf_file.create.SourceMob()
             filemob.name = otio_clip.name  # WAVEDescriptor SourceMob has the clip name
             filemob.descriptor = self.default_descriptor(otio_clip)
+            _patch_mob_id_prefix(filemob)
             self.root_file_transcriber._filemobs[mob_id] = filemob
             self.root_file_transcriber._mobs_to_append.append(('file', filemob))
 
@@ -718,6 +734,7 @@ class _TrackTranscriber:
             slot_edit_rate = getattr(self, 'audio_sampling_rate', 48000)
 
         filemob_slot = filemob.create_timeline_slot(slot_edit_rate)
+        filemob_slot["PhysicalTrackNumber"].value = 1
         filemob_clip = filemob.create_source_clip(
             slot_id=filemob_slot.slot_id,
             length=tapemob_slot.segment.length,  # Use the calculated length
@@ -759,6 +776,7 @@ class _TrackTranscriber:
             mastermob_slot = mastermob.create_timeline_slot(
                 edit_rate=slot_edit_rate, slot_id=self._master_mob_slot_id
             )
+        mastermob_slot["PhysicalTrackNumber"].value = 1
         mastermob_clip = mastermob.create_source_clip(
             slot_id=mastermob_slot.slot_id,
             length=timecode_length,
@@ -903,10 +921,10 @@ class AudioTrackTranscriber(_TrackTranscriber):
         audio_edit_rate = self.audio_sampling_rate
 
         # TimelineMobSlot
-        # SlotID 1 is reserved for timecode, so audio tracks start from SlotID 2
-        # Find the next available slot ID
+        # SlotID 1 = timecode, SlotID 2 = reserved for video.
+        # Audio tracks start from SlotID 3 (matching DaVinci Resolve layout).
         existing_slot_ids = set(slot.slot_id for slot in self.compositionmob.slots)
-        slot_id = 2
+        slot_id = 3
         while slot_id in existing_slot_ids:
             slot_id += 1
         
@@ -998,24 +1016,70 @@ class AudioTrackTranscriber(_TrackTranscriber):
             locator["URLString"].value = "file:///" + media.target_url.replace("\\", "/")
             descriptor["Locator"].append(locator)
         
-        # Add Summary (WAV header bytes) for compatibility
-        # This is what DaVinci Resolve includes
-        # WAVEDescriptor uses Summary property instead of Channels
-        descriptor["Summary"].value = bytearray([
-            0x52, 0x49, 0x46, 0x46,  # RIFF
-            0x00, 0x00, 0x00, 0x00,  # File size (placeholder)
-            0x57, 0x41, 0x56, 0x45,  # WAVE
-            0x66, 0x6D, 0x74, 0x20,  # fmt 
-            0x10, 0x00, 0x00, 0x00,  # Format chunk size
-            0x01, 0x00, 0x01, 0x00,  # PCM, 1 channel
-            0x80, 0xBB, 0x00, 0x00,  # Sample rate 48000
-            0x00, 0x2F, 0x18, 0x00,  # Byte rate
-            0x02, 0x00, 0x10, 0x00,  # Block align, bits per sample
-            0x64, 0x61, 0x74, 0x61,  # data
-            0x00, 0x00, 0x00, 0x00   # Data size (placeholder)
-        ])
+        # Add Summary (WAV header bytes) — read from actual WAV file
+        summary = self._build_wav_summary(media, length_samples)
+        if summary:
+            descriptor["Summary"].value = summary
 
         return descriptor
+
+    def _build_wav_summary(self, media, length_samples):
+        """Read actual WAV file and build a standardized 44-byte Summary header."""
+        import struct
+        if not isinstance(media, otio.schema.ExternalReference) or not media.target_url:
+            return None
+
+        wav_path = media.target_url.replace("file:///", "").replace("/", os.sep)
+        try:
+            with open(wav_path, 'rb') as f:
+                raw = f.read(4096)
+        except (OSError, FileNotFoundError):
+            return None
+
+        if len(raw) < 44 or raw[0:4] != b'RIFF' or raw[8:12] != b'WAVE':
+            return None
+
+        riff_size = struct.unpack_from('<I', raw, 4)[0]
+
+        # Walk chunks to find fmt and data
+        pos = 12
+        channels = 1
+        sample_rate = self.audio_sampling_rate
+        byte_rate = sample_rate
+        block_align = 2
+        bits_per_sample = 16
+        data_size = 0
+
+        while pos + 8 <= len(raw):
+            chunk_id = raw[pos:pos + 4]
+            chunk_size = struct.unpack_from('<I', raw, pos + 4)[0]
+            if chunk_id == b'fmt ':
+                channels = struct.unpack_from('<H', raw, pos + 10)[0]
+                sample_rate = struct.unpack_from('<I', raw, pos + 12)[0]
+                byte_rate = struct.unpack_from('<I', raw, pos + 16)[0]
+                block_align = struct.unpack_from('<H', raw, pos + 20)[0]
+                bits_per_sample = struct.unpack_from('<H', raw, pos + 22)[0]
+            elif chunk_id == b'data':
+                data_size = chunk_size
+            pos += 8 + chunk_size
+
+        # Standardize: write PCM format (1) with fmt chunk size 16
+        summary = bytearray(44)
+        struct.pack_into('<4s', summary, 0, b'RIFF')
+        struct.pack_into('<I', summary, 4, riff_size)
+        struct.pack_into('<4s', summary, 8, b'WAVE')
+        struct.pack_into('<4s', summary, 12, b'fmt ')
+        struct.pack_into('<I', summary, 16, 16)
+        struct.pack_into('<H', summary, 20, 1)  # PCM
+        struct.pack_into('<H', summary, 22, channels)
+        struct.pack_into('<I', summary, 24, sample_rate)
+        struct.pack_into('<I', summary, 28, byte_rate)
+        struct.pack_into('<H', summary, 32, block_align)
+        struct.pack_into('<H', summary, 34, bits_per_sample)
+        struct.pack_into('<4s', summary, 36, b'data')
+        struct.pack_into('<I', summary, 40, data_size)
+
+        return summary
 
     def _transition_parameters(self):
         """

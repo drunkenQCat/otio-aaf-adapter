@@ -1643,18 +1643,26 @@ def write_to_file(input_otio, filepath, **kwargs):
     import uuid
 
     with aaf2.open(filepath, "w") as f:
-        # Set Header properties to match DaVinci Resolve output
-        # This is important for Pro Tools compatibility
-        f.header['OperationalPattern'].value = aaf2.auid.AUID("0d011201-0100-0000-060e-2b3404010105")
-        
-        # Replace the default PyAAF Identification with DaVinci Resolve
-        # Clear existing and add our own
+        # 注意：不要设置 OperationalPattern！
+        # DaVinci Resolve 导出的文件没有显式设置 OperationalPattern
+        # 设置它可能会导致 Pro Tools 无法识别
+        # f.header['OperationalPattern'].value = aaf2.auid.AUID("0d011201-0100-0000-060e-2b3404010105")
+
+        # 清除 pyaaf2 默认生成的 Identification
         f.header['IdentificationList'].value.clear()
-        
+
         ident = f.create.Identification()
         ident['CompanyName'].value = "Blackmagic Design"
         ident['ProductName'].value = "DaVinci Resolve"
-        ident['ProductVersionString'].value = "19.0.0.000"
+        ident['ProductVersionString'].value = "Unknown version"
+        ident['ProductVersion'].value = {
+            'major': 19, 'minor': 0, 'tertiary': 0,
+            'patchLevel': 0, 'type': 'VersionReleased'
+        }
+        ident['ToolkitVersion'].value = {
+            'major': 1, 'minor': 1, 'tertiary': 6,
+            'patchLevel': 0, 'type': 'VersionReleased'
+        }
         ident['ProductID'].value = aaf2.auid.AUID("00000030-0000-0000-6078-0bb91f020000")
         ident['Date'].value = datetime.datetime.now()
         ident['Platform'].value = "AAFSDK (Win32)"
@@ -1686,6 +1694,13 @@ def write_to_file(input_otio, filepath, **kwargs):
         for otio_track in timeline.tracks:
             # Ensure track must have clip to get the edit_rate
             if len(otio_track) == 0:
+                continue
+
+            # Skip tracks that contain only Gap items — DaVinci Resolve does not
+            # create CompositionMob slots for video tracks that are pure fill/gap.
+            if otio_track.kind == "Video" and all(
+                isinstance(child, otio.schema.Gap) for child in otio_track
+            ):
                 continue
 
             transcriber = otio2aaf.track_transcriber(otio_track)

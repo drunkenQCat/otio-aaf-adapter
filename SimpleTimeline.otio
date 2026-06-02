@@ -1,0 +1,282 @@
+{
+    "OTIO_SCHEMA": "Timeline.1",
+    "metadata": {
+        "Resolve_OTIO": {
+            "Resolve OTIO Meta Version": "1.0"
+        }
+    },
+    "name": "",
+    "global_start_time": {
+        "OTIO_SCHEMA": "RationalTime.1",
+        "rate": 24.0,
+        "value": 86400.0
+    },
+    "tracks": {
+        "OTIO_SCHEMA": "Stack.1",
+        "metadata": {},
+        "name": "",
+        "source_range": null,
+        "effects": [],
+        "markers": [],
+        "enabled": true,
+        "children": [
+            {
+                "OTIO_SCHEMA": "Track.1",
+                "metadata": {
+                    "Resolve_OTIO": {
+                        "Locked": false
+                    }
+                },
+                "name": "视频 1",
+                "source_range": null,
+                "effects": [],
+                "markers": [],
+                "enabled": true,
+                "children": [
+                    {
+                        "OTIO_SCHEMA": "Gap.1",
+                        "metadata": {},
+                        "name": "",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 24.0,
+                                "value": 219.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 24.0,
+                                "value": 0.0
+                            }
+                        },
+                        "effects": [],
+                        "markers": [],
+                        "enabled": true
+                    }
+                ],
+                "kind": "Video"
+            },
+            {
+                "OTIO_SCHEMA": "Track.1",
+                "metadata": {
+                    "Resolve_OTIO": {
+                        "Audio Type": "Mono",
+                        "Locked": false,
+                        "SoloOn": false
+                    }
+                },
+                "name": "音频 1",
+                "source_range": null,
+                "effects": [],
+                "markers": [],
+                "enabled": true,
+                "children": [
+                    {
+                        "OTIO_SCHEMA": "Clip.2",
+                        "metadata": {
+                            "Resolve_OTIO": {
+                                "Channels": [
+                                    {
+                                        "Source Channel ID": 0,
+                                        "Source Track ID": 0
+                                    }
+                                ]
+                            }
+                        },
+                        "name": "A1-0001_ICE",
+                        "source_range": {
+                            "OTIO_SCHEMA": "TimeRange.1",
+                            "duration": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 24.0,
+                                "value": 219.0
+                            },
+                            "start_time": {
+                                "OTIO_SCHEMA": "RationalTime.1",
+                                "rate": 24.0,
+                                "value": 1728.0
+                            }
+                        },
+                        "effects": [
+                            {
+                                "OTIO_SCHEMA": "Effect.1",
+                                "metadata": {
+                                    "Resolve_OTIO": {
+                                        "Effect Name": "Fairlight Clip Volume and Fades",
+                                        "Enabled": true,
+                                        "Name": "音量",
+                                        "Parameters": [],
+                                        "Type": 62
+                                    }
+                                },
+                                "name": "",
+                                "effect_name": "Resolve Effect"
+                            },
+                            {
+                                "OTIO_SCHEMA": "Effect.1",
+                                "metadata": {
+                                    "Resolve_OTIO": {
+                                        "Effect Name": "Fairlight Clip Pan",
+                                        "Enabled": true,
+                                        "Name": "声像",
+                                        "Parameters": [],
+                                        "Type": 72
+                                    }
+                                },
+                                "name": "",
+                                "effect_name": "Resolve Effect"
+                            },
+                            {
+                                "OTIO_SCHEMA": "Effect.1",
+                                "metadata": {
+                                    "Resolve_OTIO": {
+                                        "Effect Name": "Fairlight Clip Pitch",
+                                        "Enabled": true,
+                                        "Name": "音调",
+                                        "Parameters": [],
+                                        "Type": 67
+                                    }
+                                },
+                                "name": "",
+                                "effect_name": "Resolve Effect"
+                            },
+                            {
+                                "OTIO_SCHEMA": "Effect.1",
+                                "metadata": {
+                                    "Resolve_OTIO": {
+                                        "Effect Name": "Fairlight Clip Equaliser",
+                                        "Enabled": false,
+                                        "Name": "均衡器",
+                                        "Parameters": [],
+                                        "Type": 64
+                                    }
+                                },
+                                "name": "",
+                                "effect_name": "Resolve Effect"
+                            },
+                            {
+                                "OTIO_SCHEMA": "Effect.1",
+                                "metadata": {
+                                    "Resolve_OTIO": {
+                                        "Effect Name": "Fairlight Equaliser Band",
+                                        "Enabled": false,
+                                        "Name": "均衡器段",
+                                        "Parameters": [
+                                            {
+                                                "Default Parameter Value": 0,
+                                                "Parameter ID": "eq band index",
+                                                "Parameter Value": 0,
+                                                "Variant Type": "Int",
+                                                "maxValue": 3.0,
+                                                "minValue": -1.0
+                                            }
+                                        ],
+                                        "Type": 63
+                                    }
+                                },
+                                "name": "",
+                                "effect_name": "Resolve Effect"
+                            },
+                            {
+                                "OTIO_SCHEMA": "Effect.1",
+                                "metadata": {
+                                    "Resolve_OTIO": {
+                                        "Effect Name": "Fairlight Equaliser Band",
+                                        "Enabled": true,
+                                        "Name": "均衡器段",
+                                        "Parameters": [
+                                            {
+                                                "Default Parameter Value": 1,
+                                                "Parameter ID": "eq band index",
+                                                "Parameter Value": 1,
+                                                "Variant Type": "Int",
+                                                "maxValue": 3.0,
+                                                "minValue": -1.0
+                                            }
+                                        ],
+                                        "Type": 63
+                                    }
+                                },
+                                "name": "",
+                                "effect_name": "Resolve Effect"
+                            },
+                            {
+                                "OTIO_SCHEMA": "Effect.1",
+                                "metadata": {
+                                    "Resolve_OTIO": {
+                                        "Effect Name": "Fairlight Equaliser Band",
+                                        "Enabled": true,
+                                        "Name": "均衡器段",
+                                        "Parameters": [
+                                            {
+                                                "Default Parameter Value": 2,
+                                                "Parameter ID": "eq band index",
+                                                "Parameter Value": 2,
+                                                "Variant Type": "Int",
+                                                "maxValue": 3.0,
+                                                "minValue": -1.0
+                                            }
+                                        ],
+                                        "Type": 63
+                                    }
+                                },
+                                "name": "",
+                                "effect_name": "Resolve Effect"
+                            },
+                            {
+                                "OTIO_SCHEMA": "Effect.1",
+                                "metadata": {
+                                    "Resolve_OTIO": {
+                                        "Effect Name": "Fairlight Equaliser Band",
+                                        "Enabled": false,
+                                        "Name": "均衡器段",
+                                        "Parameters": [
+                                            {
+                                                "Default Parameter Value": 3,
+                                                "Parameter ID": "eq band index",
+                                                "Parameter Value": 3,
+                                                "Variant Type": "Int",
+                                                "maxValue": 3.0,
+                                                "minValue": -1.0
+                                            }
+                                        ],
+                                        "Type": 63
+                                    }
+                                },
+                                "name": "",
+                                "effect_name": "Resolve Effect"
+                            }
+                        ],
+                        "markers": [],
+                        "enabled": true,
+                        "media_references": {
+                            "DEFAULT_MEDIA": {
+                                "OTIO_SCHEMA": "ExternalReference.1",
+                                "metadata": {},
+                                "name": "A1-0001_ICE",
+                                "available_range": {
+                                    "OTIO_SCHEMA": "TimeRange.1",
+                                    "duration": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 24.0,
+                                        "value": 219.0
+                                    },
+                                    "start_time": {
+                                        "OTIO_SCHEMA": "RationalTime.1",
+                                        "rate": 24.0,
+                                        "value": 1728.0
+                                    }
+                                },
+                                "available_image_bounds": null,
+                                "target_url": "C:\\TechProjects\\About_Voice_Cloning\\AAF-src-1.2.0\\AAF\\aaf-rs\\output\\A1-0001_ICE.wav"
+                            }
+                        },
+                        "active_media_reference_key": "DEFAULT_MEDIA"
+                    }
+                ],
+                "kind": "Audio"
+            }
+        ]
+    }
+}
