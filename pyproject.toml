@@ -16,7 +16,8 @@ readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
     "opentimelineio >= 0.17.0.dev1",
-    "pyaaf2>=1.4.0"
+    "pyaaf2>=1.4.0",
+    "pydub>=0.25.1"
 ]
 
 classifiers = [

@@ -1673,6 +1673,19 @@ def write_to_file(input_otio, filepath, **kwargs):
 
         aaf_writer.validate_metadata(timeline)
 
+        # Transcode audio files to target format (48000 Hz, 24-bit, mono)
+        from otio_aaf_adapter.audio_transcoder import (
+            transcode_audio_files,
+            update_media_references,
+            restore_media_references
+        )
+        
+        print("\n=== Audio Transcoding ===")
+        url_mapping = transcode_audio_files(timeline)
+        reverse_mapping = {}
+        if url_mapping:
+            reverse_mapping = update_media_references(timeline, url_mapping)
+
         otio2aaf = aaf_writer.AAFFileTranscriber(timeline, f, **kwargs)
 
         if not isinstance(timeline, otio.schema.Timeline):
@@ -1689,6 +1702,28 @@ def write_to_file(input_otio, filepath, **kwargs):
 
         if default_edit_rate or timeline.global_start_time:
             otio2aaf.add_timecode_first(timeline, default_edit_rate)
+
+        # Get audio sampling rate from the first audio track's WAV file
+        audio_sampling_rate = 48000  # Default
+        for otio_track in timeline.tracks:
+            if otio_track.kind == "Audio" and len(otio_track) > 0:
+                transcriber = otio2aaf.track_transcriber(otio_track)
+                audio_sampling_rate = transcriber.audio_sampling_rate
+                break
+
+        # Calculate target audio duration in samples for all tracks
+        # This ensures all audio tracks have exactly the same length
+        # The target should match the timecode length (timeline duration + 1 frame)
+        target_audio_duration_samples = None
+        timeline_duration = timeline.duration()
+        if timeline_duration:
+            # Round up to nearest frame boundary to match DaVinci Resolve behavior
+            # Timeline duration may have fractional frames (e.g., 16931.5)
+            # Use int() + 1 to match timecode length calculation in add_timecode_first()
+            import math
+            frames = int(timeline_duration.value) + 1
+            duration_seconds = frames / timeline_duration.rate
+            target_audio_duration_samples = int(duration_seconds * audio_sampling_rate)
 
         # Now process all tracks
         for otio_track in timeline.tracks:
@@ -1718,26 +1753,17 @@ def write_to_file(input_otio, filepath, **kwargs):
                     comp.length for comp in transcriber.sequence.components
                 )
 
-            # For audio tracks, add a filler at the end to match video duration
-            # This is what DaVinci Resolve does for compatibility
-            if transcriber.media_kind == "sound":
-                # Calculate filler length: round up to nearest video frame boundary
-                audio_sampling_rate = getattr(transcriber, 'audio_sampling_rate', 48000)
+            # For audio tracks, pad to target timeline duration
+            # This ensures all audio tracks have exactly the same length
+            if transcriber.media_kind == "sound" and target_audio_duration_samples:
                 current_length = transcriber.sequence.length
-                
-                # Calculate expected video frames
-                video_frames = current_length / audio_sampling_rate * default_edit_rate
-                rounded_frames = int(video_frames) + 1  # Round up
-                
-                # Calculate expected audio length
-                expected_audio_length = int(rounded_frames / default_edit_rate * audio_sampling_rate)
-                
-                # Add filler if needed
-                filler_length = expected_audio_length - current_length
-                if filler_length > 0 and filler_length < 100000:  # Sanity check: filler should be reasonable
+                filler_length = target_audio_duration_samples - current_length
+
+                # Add filler if track is shorter than target duration
+                if filler_length > 0:
                     filler = f.create.Filler("sound", filler_length)
                     transcriber.sequence.components.append(filler)
-                    transcriber.sequence.length = current_length + filler_length
+                    transcriber.sequence.length = target_audio_duration_samples
 
             # Update operation group length for audio tracks if applicable
             if hasattr(transcriber, 'timeline_mobslot') and transcriber.timeline_mobslot:
@@ -1750,3 +1776,8 @@ def write_to_file(input_otio, filepath, **kwargs):
 
         # Append all mobs in the correct order (CompositionMob -> MasterMob -> TapeDescriptor -> WAVEDescriptor)
         otio2aaf.append_all_mobs()
+
+        # Restore original media references (optional, but good practice)
+        if reverse_mapping:
+            restore_media_references(timeline, reverse_mapping)
+            print(f"Restored {len(reverse_mapping)} media references to original paths")
