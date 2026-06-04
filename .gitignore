@@ -127,3 +127,32 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Project specific - AAF Parity work
+.qwen/
+pyaaf2/
+test_data/
+tools/
+diagnostics/
+docs/parity_plan/
+
+# Test outputs
+test_output.aaf
+result.aaf
+
+# Temporary diagnostic scripts
+check_*.py
+analyze_header_structure.py
+compare_dumps.py
+diff_dumps.py
+simple_compare.py
+l0_cfb_analysis.py
+dump.bat
+dump_export.ps1
+
+# Notes and journey docs
+AAF_ProTools_Compatibility_Debug_Journey.md
+OM store format.md
+QWEN.md
+TECHNICAL_HANDOVER.md
+BINARY_PARITY_PLAN.md
