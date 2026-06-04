@@ -27,8 +27,12 @@ AAF_PARAMETERDEF_AFX_FG_KEY_OPACITY_U = uuid.UUID(
     "8d56813d-847e-11d5-935a-50f857c10000"
 )
 AAF_PARAMETERDEF_LEVEL = uuid.UUID("e4962320-2267-11d3-8a4c-0050040ef7d2")
+# Audio Gain uses "Amplitude" ParameterDef (matching DaVinci Resolve)
+AAF_PARAMETERDEF_AMPLITUDE = uuid.UUID("e4962321-2267-11d3-8a4c-0050040ef7d2")
 AAF_VVAL_EXTRAPOLATION_ID = uuid.UUID("0e24dd54-66cd-4f1a-b0a0-670ac3a7a0b3")
 AAF_OPERATIONDEF_SUBMASTER = uuid.UUID("f1db0f3d-8d64-11d3-80df-006008143e6f")
+# Audio Gain OperationDefinition (AAF standard MonoAudioGain, matching DaVinci Resolve)
+AAF_OPERATIONDEF_AUDIOGAIN = uuid.UUID("9d2ea894-0968-11d3-8a38-0050040ef7d2")
 
 logger = logging.getLogger(__name__)
 
@@ -134,41 +138,15 @@ class AAFFileTranscriber:
 
     def append_all_mobs(self):
         """
-        Append all mobs to the AAF file in the correct order:
-        1. CompositionMob
-        2. MasterMob
-        3. SourceMob (TapeDescriptor)
-        4. SourceMob (WAVEDescriptor)
-        
-        This order matches DaVinci Resolve's output.
+        Append all mobs to the AAF file in the correct order.
+        DaVinci Resolve interleaves mobs per clip:
+        CompositionMob, [MasterMob, TapeMob, FileMob], [MasterMob, TapeMob, FileMob], ...
         """
-        # Collect mobs by type
-        master_mobs = []
-        tape_mobs = []
-        file_mobs = []
-        
-        for mob_type, mob in self._mobs_to_append:
-            if mob_type == 'master':
-                master_mobs.append(mob)
-            elif mob_type == 'tape':
-                tape_mobs.append(mob)
-            elif mob_type == 'file':
-                file_mobs.append(mob)
-        
-        # Add mobs in correct order
         # 1. CompositionMob first
         self.aaf_file.content.mobs.append(self.compositionmob)
-        
-        # 2. MasterMobs
-        for mob in master_mobs:
-            self.aaf_file.content.mobs.append(mob)
-        
-        # 3. TapeDescriptor SourceMobs
-        for mob in tape_mobs:
-            self.aaf_file.content.mobs.append(mob)
-        
-        # 4. WAVEDescriptor SourceMobs (filemobs)
-        for mob in file_mobs:
+
+        # 2. Append mobs in insertion order (master, tape, file per clip)
+        for mob_type, mob in self._mobs_to_append:
             self.aaf_file.content.mobs.append(mob)
 
     def _unique_mastermob(self, otio_clip):
@@ -181,7 +159,6 @@ class AAFFileTranscriber:
             mastermob.mob_id = aaf2.mobid.MobID(mob_id)
             _patch_mob_id_prefix(mastermob)
             self._unique_mastermobs[mob_id] = mastermob
-            self._mobs_to_append.append(('master', mastermob))
 
             # transcribe clip comments onto master mob
             self._transcribe_user_comments(otio_clip, mastermob)
@@ -202,7 +179,6 @@ class AAFFileTranscriber:
             tapemob.descriptor = self.aaf_file.create.TapeDescriptor()
             _patch_mob_id_prefix(tapemob)
             self._unique_tapemobs[mob_id] = tapemob
-            self._mobs_to_append.append(('tape', tapemob))
             
             # If the edit_rate is not an integer, we need
             # to use drop frame with a nominal integer fps.
@@ -227,7 +203,15 @@ class AAFFileTranscriber:
         return tapemob
 
     def track_transcriber(self, otio_track):
-        """Return an appropriate _TrackTranscriber given an otio track."""
+        """Return an appropriate _TrackTranscriber given an otio track.
+        Results are cached to avoid duplicate mobslot creation."""
+        if not hasattr(self, '_transcriber_cache'):
+            self._transcriber_cache = {}
+        
+        track_id = id(otio_track)
+        if track_id in self._transcriber_cache:
+            return self._transcriber_cache[track_id]
+        
         if otio_track.kind == otio.schema.TrackKind.Video:
             transcriber = VideoTrackTranscriber(self, otio_track)
         elif otio_track.kind == otio.schema.TrackKind.Audio:
@@ -236,6 +220,8 @@ class AAFFileTranscriber:
             raise otio.exceptions.NotSupportedError(
                 f"Unsupported track kind: {otio_track.kind}"
             )
+        
+        self._transcriber_cache[track_id] = transcriber
         return transcriber
 
     def add_timecode_first(self, input_otio, default_edit_rate):
@@ -517,12 +503,17 @@ class _TrackTranscriber:
 
     def aaf_filler(self, otio_gap):
         """Convert an otio Gap into an aaf Filler"""
+        import math
         # Convert duration from timeline rate to appropriate rate for media kind
         gap_duration = otio_gap.visible_range().duration
         if self.media_kind == "sound":
-            # Convert frames to seconds, then to audio samples
-            duration_seconds = gap_duration.value / gap_duration.rate
-            length = int(duration_seconds * self.audio_sampling_rate)
+            # For Pro Tools compatibility: ceil frame count for Filler (upward)
+            # This matches DaVinci Resolve's behavior where:
+            # - Clip durations use floor (downward rounding)
+            # - Gap/Filler durations use ceil (upward rounding)
+            # This ensures total sequence length stays consistent
+            frame_count = math.ceil(gap_duration.value)
+            length = int(frame_count * (self.audio_sampling_rate / gap_duration.rate))
         else:
             length = int(gap_duration.value)
         filler = self.aaf_file.create.Filler(self.media_kind, length)
@@ -726,7 +717,6 @@ class _TrackTranscriber:
             filemob.descriptor = self.default_descriptor(otio_clip)
             _patch_mob_id_prefix(filemob)
             self.root_file_transcriber._filemobs[mob_id] = filemob
-            self.root_file_transcriber._mobs_to_append.append(('file', filemob))
 
         # For audio tracks, use audio sampling rate as edit rate
         slot_edit_rate = self.edit_rate
@@ -902,13 +892,64 @@ class AudioTrackTranscriber(_TrackTranscriber):
 
     @property
     def audio_sampling_rate(self):
-        """Get the audio sampling rate from the track or default to 48000."""
-        # Try to get audio sampling rate from track metadata
-        audio_type = self.otio_track.metadata.get("Resolve_OTIO", {}).get(
-            "Audio Type", "Mono"
-        )
-        # Default to 48000 Hz for professional audio
-        return 48000
+        """Get the audio sampling rate from the first audio clip's WAV file."""
+        self._ensure_wav_info()
+        return self._cached_sample_rate
+
+    @property
+    def audio_bits_per_sample(self):
+        """Get the audio bit depth from the first audio clip's WAV file."""
+        self._ensure_wav_info()
+        return self._cached_bits_per_sample
+
+    def _ensure_wav_info(self):
+        """Read sample rate and bit depth from the first available WAV file."""
+        if hasattr(self, '_cached_sample_rate'):
+            return
+
+        import struct
+        import os
+        for child in self.otio_track:
+            if not hasattr(child, 'media_reference') or not child.media_reference:
+                continue
+            mr = child.media_reference
+            if not hasattr(mr, 'target_url') or not mr.target_url:
+                continue
+            
+            # Handle various path formats (same as _build_wav_summary)
+            wav_path = mr.target_url
+            if wav_path.startswith("file:///"):
+                wav_path = wav_path[8:]
+                # Handle Windows paths: file:///C:/... -> C:\...
+                if len(wav_path) >= 2 and wav_path[1] == ':':
+                    wav_path = wav_path.replace("/", os.sep)
+            elif wav_path.startswith("file://"):
+                wav_path = wav_path[7:]
+                if len(wav_path) >= 2 and wav_path[1] == ':':
+                    wav_path = wav_path.replace("/", os.sep)
+            
+            # Handle Windows extended-length path prefix \\?\
+            if wav_path.startswith("\\\\?\\"):
+                wav_path = wav_path[4:]
+            
+            try:
+                with open(wav_path, 'rb') as wf:
+                    header = wf.read(4096)
+                if len(header) >= 44 and header[0:4] == b'RIFF' and header[8:12] == b'WAVE':
+                    pos = 12
+                    while pos + 8 <= len(header):
+                        chunk_id = header[pos:pos + 4]
+                        chunk_size = struct.unpack_from('<I', header, pos + 4)[0]
+                        if chunk_id == b'fmt ':
+                            self._cached_sample_rate = struct.unpack_from('<I', header, pos + 12)[0]
+                            self._cached_bits_per_sample = struct.unpack_from('<H', header, pos + 22)[0]
+                            return
+                        pos += 8 + chunk_size
+            except (OSError, FileNotFoundError):
+                continue
+
+        self._cached_sample_rate = 48000
+        self._cached_bits_per_sample = 16
 
     def _create_timeline_mobslot(self):
         """
@@ -950,12 +991,30 @@ class AudioTrackTranscriber(_TrackTranscriber):
         Create a source clip for audio with proper edit rate handling.
         Audio clips use the audio sampling rate (48000) as edit rate,
         while the composition uses the timeline rate (24 fps).
+
+        For Pro Tools compatibility, each audio clip is wrapped in an
+        Audio Gain OperationGroup (matching DaVinci Resolve's output structure).
         """
+        # Track which mobs are new (not yet in unique dicts)
+        mob_id = self.root_file_transcriber._clip_mob_ids_map.get(otio_clip)
+        mastermob_is_new = mob_id not in self.root_file_transcriber._unique_mastermobs
+        tapemob_is_new = mob_id not in self.root_file_transcriber._unique_tapemobs
+        filemob_is_new = mob_id not in self.root_file_transcriber._filemobs
+
         tapemob, tapemob_slot = self._create_tapemob(otio_clip)
         filemob, filemob_slot = self._create_filemob(otio_clip, tapemob, tapemob_slot)
         mastermob, mastermob_slot = self._create_mastermob(
             otio_clip, filemob, filemob_slot
         )
+
+        # Append mobs in correct order: MasterMob, TapeMob, FileMob
+        # This matches DaVinci Resolve's output order
+        if mastermob_is_new:
+            self.root_file_transcriber._mobs_to_append.append(('master', mastermob))
+        if tapemob_is_new:
+            self.root_file_transcriber._mobs_to_append.append(('tape', tapemob))
+        if filemob_is_new:
+            self.root_file_transcriber._mobs_to_append.append(('file', filemob))
 
         # We need both `start_time` and `duration`
         # Here `start` is the offset between `first` and `in` values.
@@ -963,29 +1022,40 @@ class AudioTrackTranscriber(_TrackTranscriber):
             otio_clip.visible_range().start_time
             - otio_clip.available_range().start_time
         )
-        
+
         # Convert duration from timeline rate (24 fps) to audio sampling rate (48000 Hz)
+        # For Pro Tools compatibility: round frame count first, then convert to samples
+        # This matches DaVinci Resolve's behavior (clean integer sample counts)
         visible_duration = otio_clip.visible_range().duration
         if self.media_kind == "sound":
-            # Convert frames to seconds, then to audio samples
-            duration_seconds = visible_duration.value / visible_duration.rate
-            length = int(duration_seconds * self.audio_sampling_rate)
-            start = int(offset.value * (self.audio_sampling_rate / offset.rate))
+            # Use floor (int) for frame count - matches DaVinci Resolve's behavior
+            frame_count = int(visible_duration.value)
+            length = int(frame_count * (self.audio_sampling_rate / visible_duration.rate))
+            start_frame = int(offset.value)
+            start = int(start_frame * (self.audio_sampling_rate / offset.rate))
         else:
             start = int(offset.value)
             length = int(visible_duration.value)
 
+        # When the SourceClip is wrapped in an OperationGroup, the OperationGroup
+        # handles timeline positioning. The inner SourceClip should start at 0
+        # (reference from the beginning of the MasterMob).
+        # This matches DaVinci Resolve's behavior: StartTime=0 for OG input clips.
         compmob_clip = self.compositionmob.create_source_clip(
             slot_id=self.timeline_mobslot.slot_id,
-            # XXX: Python3 requires these to be passed as explicit ints
-            start=int(start),
+            start=0,
             length=int(length),
             media_kind=self.media_kind,
         )
         compmob_clip.mob = mastermob
         compmob_clip.slot = mastermob_slot
         compmob_clip.slot_id = mastermob_slot.slot_id
-        return compmob_clip
+
+        # Wrap the SourceClip in an Audio Gain OperationGroup
+        # This matches DaVinci Resolve's output structure for Pro Tools compatibility
+        op_group = self._create_audio_gain_opgroup(compmob_clip, length)
+        return op_group
+
 
     def default_descriptor(self, otio_clip):
         """
@@ -1012,14 +1082,36 @@ class AudioTrackTranscriber(_TrackTranscriber):
         # Add locator for external reference
         if isinstance(media, otio.schema.ExternalReference) and media.target_url:
             locator = self.aaf_network_locator(media)
-            # Use file:/// URL format for compatibility
-            locator["URLString"].value = "file:///" + media.target_url.replace("\\", "/")
+            
+            # Build proper file:// URL using Path.as_uri()
+            from pathlib import Path
+            
+            target_url = media.target_url
+            
+            # Strip file:// prefix if already present
+            if target_url.startswith("file:///"):
+                target_url = target_url[8:]
+            elif target_url.startswith("file://"):
+                target_url = target_url[7:]
+            
+            # Strip Windows extended-length prefix \\?\
+            if target_url.startswith("\\\\?\\"):
+                target_url = target_url[4:]
+            
+            # Path.as_uri() handles everything: file:// prefix, URL encoding, path normalization
+            url_string = Path(target_url).resolve().as_uri()
+            
+            locator["URLString"].value = url_string
             descriptor["Locator"].append(locator)
         
         # Add Summary (WAV header bytes) — read from actual WAV file
+        # WAVEDescriptor requires Summary property, so always provide one
         summary = self._build_wav_summary(media, length_samples)
         if summary:
             descriptor["Summary"].value = summary
+        else:
+            # Provide default Summary if WAV file can't be read
+            descriptor["Summary"].value = self._build_default_wav_summary(length_samples)
 
         return descriptor
 
@@ -1029,11 +1121,27 @@ class AudioTrackTranscriber(_TrackTranscriber):
         if not isinstance(media, otio.schema.ExternalReference) or not media.target_url:
             return None
 
-        wav_path = media.target_url.replace("file:///", "").replace("/", os.sep)
+        # Handle various path formats
+        wav_path = media.target_url
+        if wav_path.startswith("file:///"):
+            wav_path = wav_path[8:]
+            # Handle Windows paths: file:///C:/... -> C:\...
+            if len(wav_path) >= 2 and wav_path[1] == ':':
+                wav_path = wav_path.replace("/", os.sep)
+        elif wav_path.startswith("file://"):
+            wav_path = wav_path[7:]
+            if len(wav_path) >= 2 and wav_path[1] == ':':
+                wav_path = wav_path.replace("/", os.sep)
+        
+        # Handle Windows extended-length path prefix \\?\
+        if wav_path.startswith("\\\\?\\"):
+            wav_path = wav_path[4:]
+        
         try:
             with open(wav_path, 'rb') as f:
                 raw = f.read(4096)
-        except (OSError, FileNotFoundError):
+        except (OSError, FileNotFoundError) as e:
+            print(f"Warning: Could not read WAV file {wav_path}: {e}")
             return None
 
         if len(raw) < 44 or raw[0:4] != b'RIFF' or raw[8:12] != b'WAVE':
@@ -1081,6 +1189,34 @@ class AudioTrackTranscriber(_TrackTranscriber):
 
         return summary
 
+    def _build_default_wav_summary(self, length_samples):
+        """Build a default WAV Summary header when actual WAV file is unavailable."""
+        import struct
+        channels = 1
+        sample_rate = self.audio_sampling_rate
+        bits_per_sample = 16
+        byte_rate = sample_rate * channels * bits_per_sample // 8
+        block_align = channels * bits_per_sample // 8
+        data_size = length_samples * block_align
+        riff_size = 36 + data_size
+
+        summary = bytearray(44)
+        struct.pack_into('<4s', summary, 0, b'RIFF')
+        struct.pack_into('<I', summary, 4, riff_size)
+        struct.pack_into('<4s', summary, 8, b'WAVE')
+        struct.pack_into('<4s', summary, 12, b'fmt ')
+        struct.pack_into('<I', summary, 16, 16)
+        struct.pack_into('<H', summary, 20, 1)  # PCM
+        struct.pack_into('<H', summary, 22, channels)
+        struct.pack_into('<I', summary, 24, sample_rate)
+        struct.pack_into('<I', summary, 28, byte_rate)
+        struct.pack_into('<H', summary, 32, block_align)
+        struct.pack_into('<H', summary, 34, bits_per_sample)
+        struct.pack_into('<4s', summary, 36, b'data')
+        struct.pack_into('<I', summary, 40, data_size)
+
+        return summary
+
     def _transition_parameters(self):
         """
         Return audio transition parameters
@@ -1099,6 +1235,67 @@ class AudioTrackTranscriber(_TrackTranscriber):
         )
 
         return [param_def_level], level
+
+    def _create_audio_gain_opgroup(self, source_clip, length):
+        """
+        Create an Audio Gain OperationGroup wrapping a SourceClip.
+        This matches DaVinci Resolve's output structure for Pro Tools compatibility.
+
+        Args:
+            source_clip: The SourceClip to wrap
+            length: The length in audio samples
+
+        Returns:
+            OperationGroup containing the SourceClip with a default Audio Gain effect
+        """
+        import aaf2.rational
+
+        # Create or lookup the Audio Gain OperationDefinition
+        op_def = self.aaf_file.create.OperationDef(
+            AAF_OPERATIONDEF_AUDIOGAIN, "Audio Gain"
+        )
+        self.aaf_file.dictionary.register_def(op_def)
+        op_def.media_kind = self.media_kind
+        datadef = self.aaf_file.dictionary.lookup_datadef(self.media_kind)
+
+        # Required properties for OperationDefinition
+        op_def["IsTimeWarp"].value = False
+        op_def["Bypass"].value = 0
+        op_def["NumberInputs"].value = 1
+        op_def["OperationCategory"].value = "OperationCategory_Effect"
+        op_def["DataDefinition"].value = datadef
+
+        # Create the Amplitude ParameterDef if not already registered
+        # DaVinci Resolve uses "Amplitude" (not "ParameterDef_Level") for Audio Gain
+        try:
+            param_def_level = self.aaf_file.dictionary.lookup_parameterdef("Amplitude")
+        except Exception:
+            def_level_typedef = self.aaf_file.dictionary.lookup_typedef("Rational")
+            param_def_level = self.aaf_file.create.ParameterDef(
+                AAF_PARAMETERDEF_AMPLITUDE, "Amplitude", "", def_level_typedef
+            )
+            self.aaf_file.dictionary.register_def(param_def_level)
+
+        # Create ConstantValue for the gain parameter
+        # Value is 536870912/536870912 = 1.0 (no attenuation)
+        # This matches DaVinci Resolve's default Audio Gain value
+        const_value = self.aaf_file.create.ConstantValue()
+        const_value.parameterdef = param_def_level
+        const_value["Value"].value = aaf2.rational.AAFRational(536870912, 536870912)
+
+        # Create the OperationGroup
+        op_group = self.aaf_file.create.OperationGroup(op_def, length)
+        op_group.media_kind = self.media_kind
+        op_group["DataDefinition"].value = datadef
+
+        # Add the SourceClip as input
+        op_group.segments.append(source_clip)
+
+        # Add the ConstantValue parameter
+        op_group["Parameters"].append(const_value)
+
+        return op_group
+
 
 
 class __check:
