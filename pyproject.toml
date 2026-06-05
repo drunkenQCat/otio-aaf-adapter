@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "otio-aaf-adapter"
-version = "2.0.0"
+version = "1.1.0.dev1"
 description = "OpenTimelineIO AAF Adapter"
 authors = [
   { name="Contributors to the OpenTimelineIO project", email="otio-discussion@lists.aswf.io" },
@@ -15,8 +15,9 @@ license = { file="LICENSE.txt" }
 readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
-    "opentimelineio >= 0.17.0",
-    "pyaaf2>=1.7.0"
+    "opentimelineio >= 0.17.0.dev1",
+    "pyaaf2>=1.4.0",
+    "pydub>=0.25.1"
 ]
 
 classifiers = [
@@ -52,3 +53,9 @@ exclude = [".github"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=otio_aaf_adapter"
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.4",
+    "pytest-cov>=4.1.0",
+]
