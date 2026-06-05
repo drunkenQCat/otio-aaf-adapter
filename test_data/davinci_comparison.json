@@ -1,0 +1,515 @@
+{
+  "file1": "test_data/\u98de\u9a70\u4eba\u751f\u6d4b\u8bd5_testdata_new.aaf",
+  "file2": "test_data/\u98de\u9a70\u4eba\u751f\u6d4b\u8bd5_20260515.20260602163810.aaf",
+  "differences": [
+    {
+      "type": "clip_name",
+      "track": 0,
+      "clip": 0,
+      "value1": "A1-0001_01_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_69e9_MiniMax_SJH",
+      "value2": "A1-0001_01_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 0,
+      "clip": 0,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(476000, 48000))",
+      "value2": "TimeRange(RationalTime(2.8524e+07, 48000), RationalTime(476000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 0,
+      "clip": 0,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A1-0001_01_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_69e9_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A1-0001_01_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_69e9_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 0,
+      "clip": 1,
+      "value1": "A1-0002_05_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_2a09_MiniMax_SJH",
+      "value2": "A1-0002_05_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 0,
+      "clip": 1,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(352000, 48000))",
+      "value2": "TimeRange(RationalTime(3.0026e+07, 48000), RationalTime(352000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 0,
+      "clip": 1,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A1-0002_05_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_2a09_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A1-0002_05_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_2a09_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 0,
+      "clip": 2,
+      "value1": "A1-0003_11_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_cb7b_MiniMax_SJH",
+      "value2": "A1-0003_11_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 0,
+      "clip": 2,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(384000, 48000))",
+      "value2": "TimeRange(RationalTime(3.0674e+07, 48000), RationalTime(384000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 0,
+      "clip": 2,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A1-0003_11_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_cb7b_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A1-0003_11_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_cb7b_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 0,
+      "clip": 3,
+      "value1": "A1-0004_15_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_69f1_MiniMax_SJH",
+      "value2": "A1-0004_15_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 0,
+      "clip": 3,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(294000, 48000))",
+      "value2": "TimeRange(RationalTime(3.1078e+07, 48000), RationalTime(294000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 0,
+      "clip": 3,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A1-0004_15_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_69f1_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A1-0004_15_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_69f1_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 0,
+      "clip": 4,
+      "value1": "A1-0005_19_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_6c87_MiniMax_SJH",
+      "value2": "A1-0005_19_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 0,
+      "clip": 4,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(512000, 48000))",
+      "value2": "TimeRange(RationalTime(3.1492e+07, 48000), RationalTime(512000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 0,
+      "clip": 4,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A1-0005_19_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_6c87_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A1-0005_19_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_6c87_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 0,
+      "clip": 5,
+      "value1": "A1-0006_24_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_0e5a_MiniMax_SJH",
+      "value2": "A1-0006_24_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 0,
+      "clip": 5,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(214000, 48000))",
+      "value2": "TimeRange(RationalTime(3.2092e+07, 48000), RationalTime(214000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 0,
+      "clip": 5,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A1-0006_24_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_0e5a_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A1-0006_24_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_0e5a_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 0,
+      "clip": 6,
+      "value1": "A1-0007_27_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_5e94_MiniMax_SJH",
+      "value2": "A1-0007_27_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 0,
+      "clip": 6,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(320000, 48000))",
+      "value2": "TimeRange(RationalTime(3.2332e+07, 48000), RationalTime(320000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 0,
+      "clip": 6,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A1-0007_27_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_5e94_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A1-0007_27_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_5e94_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 0,
+      "clip": 7,
+      "value1": "A1-0008_30_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_9748_MiniMax_SJH",
+      "value2": "A1-0008_30_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 0,
+      "clip": 7,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(352000, 48000))",
+      "value2": "TimeRange(RationalTime(3.2726e+07, 48000), RationalTime(352000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 0,
+      "clip": 7,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A1-0008_30_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_9748_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A1-0008_30_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_9748_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 0,
+      "clip": 8,
+      "value1": "A1-0009_37_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_09dd_MiniMax_SJH",
+      "value2": "A1-0009_37_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 0,
+      "clip": 8,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(316000, 48000))",
+      "value2": "TimeRange(RationalTime(3.3546e+07, 48000), RationalTime(316000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 0,
+      "clip": 8,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A1-0009_37_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_09dd_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A1-0009_37_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_09dd_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 1,
+      "clip": 0,
+      "value1": "A2-0001_06_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_5e2c_MiniMax_SJH",
+      "value2": "A2-0001_06_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 1,
+      "clip": 0,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(176000, 48000))",
+      "value2": "TimeRange(RationalTime(3.0138e+07, 48000), RationalTime(176000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 1,
+      "clip": 0,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A2-0001_06_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_5e2c_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A2-0001_06_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_5e2c_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 1,
+      "clip": 1,
+      "value1": "A2-0002_08_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_ef0e_MiniMax_SJH",
+      "value2": "A2-0002_08_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 1,
+      "clip": 1,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(176000, 48000))",
+      "value2": "TimeRange(RationalTime(3.0316e+07, 48000), RationalTime(176000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 1,
+      "clip": 1,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A2-0002_08_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_ef0e_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A2-0002_08_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_ef0e_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 1,
+      "clip": 2,
+      "value1": "A2-0003_12_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_4325_MiniMax_SJH",
+      "value2": "A2-0003_12_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 1,
+      "clip": 2,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(196000, 48000))",
+      "value2": "TimeRange(RationalTime(3.0714e+07, 48000), RationalTime(196000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 1,
+      "clip": 2,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A2-0003_12_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_4325_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A2-0003_12_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_4325_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 1,
+      "clip": 3,
+      "value1": "A2-0004_13_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_a132_MiniMax_SJH",
+      "value2": "A2-0004_13_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 1,
+      "clip": 3,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(252000, 48000))",
+      "value2": "TimeRange(RationalTime(3.0956e+07, 48000), RationalTime(252000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 1,
+      "clip": 3,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A2-0004_13_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_a132_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A2-0004_13_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_a132_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 1,
+      "clip": 4,
+      "value1": "A2-0005_18_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_a522_MiniMax_SJH",
+      "value2": "A2-0005_18_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 1,
+      "clip": 4,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(202000, 48000))",
+      "value2": "TimeRange(RationalTime(3.136e+07, 48000), RationalTime(202000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 1,
+      "clip": 4,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A2-0005_18_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_a522_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A2-0005_18_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_a522_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 1,
+      "clip": 5,
+      "value1": "A2-0006_20_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_c63d_MiniMax_SJH",
+      "value2": "A2-0006_20_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 1,
+      "clip": 5,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(330000, 48000))",
+      "value2": "TimeRange(RationalTime(3.1618e+07, 48000), RationalTime(330000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 1,
+      "clip": 5,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A2-0006_20_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_c63d_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A2-0006_20_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_c63d_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 1,
+      "clip": 6,
+      "value1": "A2-0007_23_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_4bed_MiniMax_SJH",
+      "value2": "A2-0007_23_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 1,
+      "clip": 6,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(270000, 48000))",
+      "value2": "TimeRange(RationalTime(3.1988e+07, 48000), RationalTime(270000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 1,
+      "clip": 6,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A2-0007_23_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_4bed_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A2-0007_23_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_4bed_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 1,
+      "clip": 7,
+      "value1": "A2-0008_28_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_56c6_MiniMax_SJH",
+      "value2": "A2-0008_28_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 1,
+      "clip": 7,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(172000, 48000))",
+      "value2": "TimeRange(RationalTime(3.2494e+07, 48000), RationalTime(172000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 1,
+      "clip": 7,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A2-0008_28_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_56c6_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A2-0008_28_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_56c6_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 2,
+      "clip": 0,
+      "value1": "A3-0001_07_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_f514_MiniMax_SJH",
+      "value2": "A3-0001_07_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 2,
+      "clip": 0,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(398000, 48000))",
+      "value2": "TimeRange(RationalTime(3.0206e+07, 48000), RationalTime(398000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 2,
+      "clip": 0,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A3-0001_07_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_f514_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A3-0001_07_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_f514_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 2,
+      "clip": 1,
+      "value1": "A3-0002_14_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_614a_MiniMax_SJH",
+      "value2": "A3-0002_14_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 2,
+      "clip": 1,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(204000, 48000))",
+      "value2": "TimeRange(RationalTime(3.0992e+07, 48000), RationalTime(204000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 2,
+      "clip": 1,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A3-0002_14_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_614a_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A3-0002_14_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_614a_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 2,
+      "clip": 2,
+      "value1": "A3-0003_21_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_fbf8_MiniMax_SJH",
+      "value2": "A3-0003_21_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 2,
+      "clip": 2,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(452000, 48000))",
+      "value2": "TimeRange(RationalTime(3.1732e+07, 48000), RationalTime(452000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 2,
+      "clip": 2,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A3-0003_21_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_fbf8_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A3-0003_21_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_fbf8_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 2,
+      "clip": 3,
+      "value1": "A3-0004_26_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_d28d_MiniMax_SJH",
+      "value2": "A3-0004_26_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 2,
+      "clip": 3,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(244000, 48000))",
+      "value2": "TimeRange(RationalTime(3.2234e+07, 48000), RationalTime(244000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 2,
+      "clip": 3,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A3-0004_26_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_d28d_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A3-0004_26_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_d28d_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 2,
+      "clip": 4,
+      "value1": "A3-0005_29_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_80e9_MiniMax_SJH",
+      "value2": "A3-0005_29_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 2,
+      "clip": 4,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(274000, 48000))",
+      "value2": "TimeRange(RationalTime(3.2564e+07, 48000), RationalTime(274000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 2,
+      "clip": 4,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A3-0005_29_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_80e9_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A3-0005_29_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_80e9_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 3,
+      "clip": 0,
+      "value1": "A4-0001_22_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_c767_MiniMax_SJH",
+      "value2": "A4-0001_22_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 3,
+      "clip": 0,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(172000, 48000))",
+      "value2": "TimeRange(RationalTime(3.1828e+07, 48000), RationalTime(172000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 3,
+      "clip": 0,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A4-0001_22_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_c767_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A4-0001_22_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_c767_MiniMax_SJH.wav\")"
+    },
+    {
+      "type": "clip_name",
+      "track": 3,
+      "clip": 1,
+      "value1": "A4-0002_25_\u53f6\u7ecf\u7406_rate1.0_260515_10PM_3f1c_MiniMax_SJH",
+      "value2": "A4-0002_25_\u53f6\u7ecf\u7406_rate1"
+    },
+    {
+      "type": "clip_source_range",
+      "track": 3,
+      "clip": 1,
+      "value1": "TimeRange(RationalTime(0, 48000), RationalTime(378000, 48000))",
+      "value2": "TimeRange(RationalTime(3.2168e+07, 48000), RationalTime(378000, 48000))"
+    },
+    {
+      "type": "clip_media_reference",
+      "track": 3,
+      "clip": 1,
+      "value1": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/converted/A4-0002_25_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_3f1c_MiniMax_SJH_converted.wav\")",
+      "value2": "ExternalReference(\"file:///C:/TechProjects/Timeline_Projects/otio-aaf-adapter/test_data/A4-0002_25_%E5%8F%B6%E7%BB%8F%E7%90%86_rate1.0_260515_10PM_3f1c_MiniMax_SJH.wav\")"
+    }
+  ],
+  "total_differences": 72,
+  "summary": {
+    "tracks": 4,
+    "clips": 24
+  }
+}
