@@ -1,192 +1,194 @@
 # PT-Compat 分支完善计划 - Todo List
 
-## 阶段 1: 验证循环建立（高优先级）
+## 当前状态
+- **总测试数**: 66
+- **通过**: 64 (97.0%)
+- **失败**: 2 (3.0%)
+- **失败的测试**:
+  1. `test_aaf_roundtrip_first_clip`: source_range.start_time 从 101 变成 102（+1）
+  2. `test_transcribe_embed_dnx_data`: source_range.start_time 从 1 变成 2（+1）
 
-### 1.1 导出 dev 分支参考 AAF
-- [ ] 切换到 dev 分支
-- [ ] 使用 `tests/sample_data/no_metadata.otio` 导出 AAF
-- [ ] 保存为 `reference/dev_branch_output.aaf`
-- [ ] 切回 pt_compat 分支
+## 目标
+确保 pt_compat 分支能够恢复 dev 分支输出的 AAF 文件的特性，并与 DaVinci Resolve 导出的文件做对比，形成验证循环。
 
-### 1.2 运行验证循环
-- [ ] 运行 verification_loop.py 对比 pt_compat vs dev
-- [ ] 分析差异报告
-- [ ] 记录所有不匹配项
+---
 
-### 1.3 与 DaVinci Resolve 参考对比（如果有）
-- [ ] 获取 DaVinci Resolve 导出的参考 AAF
-- [ ] 运行 verification_loop.py 对比
-- [ ] 分析差异报告
+## Phase 1: 分析失败的测试 (高优先级)
 
-## 阶段 2: 修复 MobID 相关问题（高优先级）
+### Task 1.1: 分析 test_aaf_roundtrip_first_clip
+- [ ] 检查测试的详细逻辑
+- [ ] 检查 NO_METADATA_OTIO_PATH 文件的内容
+- [ ] 检查第一个 clip 的 source_range
+- [ ] 检查 roundtrip 后的 source_range
+- [ ] 找出 source_range.start_time +1 的原因
 
-### 2.1 分析 4 个 MobID 失败测试
-- [ ] test_aaf_writer_duplicates
-  - 运行测试，记录错误详情
-  - 对比期望的 MobID 和实际的 MobID
-  - 确定字节顺序差异
-  
-- [ ] test_aaf_writer_nesting
-  - 运行测试，记录错误详情
-  - 分析 MobID 差异原因
-  
-- [ ] test_aaf_writer_nested_stack
-  - 运行测试，记录错误详情
-  - 分析 MobID 差异原因
-  
-- [ ] test_aaf_writer_external_reference
-  - 运行测试，记录错误详情
-  - 分析 MobID 差异原因
+### Task 1.2: 分析 test_transcribe_embed_dnx_data
+- [ ] 检查测试的详细逻辑
+- [ ] 检查 DNX 文件的嵌入逻辑
+- [ ] 检查 source_range 的计算
+- [ ] 找出 source_range.start_time +1 的原因
 
-### 2.2 确定修复策略
-- [ ] 分析测试期望的 MobID 格式
-- [ ] 确定是否需要恢复 _patch_mob_id_prefix
-- [ ] 或者调整 MobID 生成逻辑
+### Task 1.3: 对比 dev 和 pt_compat 分支
+- [ ] 运行 dev 分支的测试，确保它们通过
+- [ ] 导出相同的 OTIO 文件到 AAF（dev 和 pt_compat）
+- [ ] 对比两个 AAF 文件的结构
+- [ ] 找出导致 +1 问题的具体代码
 
-### 2.3 实施修复
-- [ ] 根据分析结果实施修复
-- [ ] 运行测试验证
-- [ ] 确保不破坏其他测试
+---
 
-## 阶段 3: 修复 source_range 差异（中优先级）
+## Phase 2: 修复问题 (高优先级)
 
-### 3.1 分析 3 个 source_range 失败测试
-- [ ] test_aaf_roundtrip_first_clip
-  - 运行测试，记录错误详情
-  - 对比期望的 source_range 和实际的 source_range
-  - 确定差值（应该是 1）
-  
-- [ ] test_aaf_writer_nometadata
-  - 运行测试，记录错误详情
-  - 分析 source_range 差异原因
-  
-- [ ] test_transcribe_embed_dnx_data
-  - 运行测试，记录错误详情
-  - 分析 source_range 差异原因
-
-### 3.2 调查根本原因
-- [ ] 检查 timecode length +1 是否影响 source_range
-- [ ] 检查 offset 计算逻辑
-- [ ] 对比 dev 分支的实现
-
-### 3.3 实施修复
-- [ ] 根据分析结果实施修复
-- [ ] 运行测试验证
-- [ ] 确保不破坏其他测试
-
-## 阶段 4: 修复 URL 格式问题（低优先级）
-
-### 4.1 分析 3 个 URL 失败测试
-- [ ] test_aaf_writer_simple
-  - 运行测试，记录错误详情
-  - 对比期望的 URL 和实际的 URL
-  
-- [ ] test_aaf_writer_transitions
-  - 运行测试，记录错误详情
-  - 分析 URL 差异原因
-  
-- [ ] test_aaf_writer_audio_pan
-  - 运行测试，记录错误详情
-  - 分析 URL 差异原因
-
-### 4.2 确定修复策略
-- [ ] 决定使用 file:/// 还是 file://
-- [ ] 统一所有 URL 处理逻辑
-- [ ] 更新测试期望（如果需要）
-
-### 4.3 实施修复
-- [ ] 根据分析结果实施修复
-- [ ] 运行测试验证
-- [ ] 确保不破坏其他测试
-
-## 阶段 5: 完整测试验证
-
-### 5.1 运行完整测试套件
-- [ ] pytest tests/test_aaf_adapter.py -v
-- [ ] 记录所有测试结果
+### Task 2.1: 修复 source_range.start_time +1 问题
+- [ ] 根据 Task 1.3 的分析结果修复问题
+- [ ] 运行测试验证修复
 - [ ] 确保所有测试通过
 
-### 5.2 运行验证循环
-- [ ] 使用 verification_loop.py 对比 dev 分支
-- [ ] 确保所有关键属性匹配
-- [ ] 生成对比报告
+### Task 2.2: 验证修复
+- [ ] 运行完整测试套件
+- [ ] 确保所有测试通过
+- [ ] 运行 flake8 检查代码风格
+- [ ] 修复所有代码风格问题
 
-### 5.3 使用多个测试文件验证
-- [ ] tests/sample_data/simple_example.otio
-- [ ] tests/sample_data/transitions.otio
-- [ ] tests/sample_data/nesting.otio
-- [ ] tests/sample_data/nested_stack.otio
-- [ ] 确保所有文件都能正确导出
+---
 
-## 阶段 6: Pro Tools 实际测试
+## Phase 3: 与 DaVinci Resolve 对比 (中优先级)
 
-### 6.1 导出测试 AAF
-- [ ] 使用 pt_compat 分支导出多个测试 AAF
+### Task 3.1: 导出 AAF 文件
+- [ ] 使用 pt_compat 导出多个 OTIO 文件到 AAF
 - [ ] 记录导出参数和配置
 
-### 6.2 Pro Tools 导入测试
-- [ ] 在 Pro Tools 中导入导出的 AAF
-- [ ] 验证音频轨道识别
-- [ ] 验证音频播放
-- [ ] 验证时间码显示
+### Task 3.2: 与 DaVinci Resolve 对比
+- [ ] 使用 DaVinci Resolve 打开 pt_compat 导出的 AAF 文件
+- [ ] 检查时间码、音频轨道、视频轨道等
+- [ ] 对比 DaVinci Resolve 导出的 AAF 文件
+- [ ] 确保与 DaVinci Resolve 的行为一致
 
-### 6.3 问题记录
-- [ ] 记录任何导入问题
-- [ ] 记录任何播放问题
-- [ ] 记录任何显示问题
+### Task 3.3: 修复不一致的地方
+- [ ] 根据 Task 3.2 的结果修复任何不一致的地方
+- [ ] 运行测试验证修复
+- [ ] 确保所有测试通过
 
-## 阶段 7: 文档完善
+---
 
-### 7.1 更新迁移状态报告
-- [ ] 更新测试结果
-- [ ] 更新验证循环结果
-- [ ] 更新 Pro Tools 测试结果
+## Phase 4: 文档和提交 (低优先级)
 
-### 7.2 编写用户文档
-- [ ] 编写 Pro Tools 兼容性说明
-- [ ] 编写使用指南
-- [ ] 编写已知限制
+### Task 4.1: 更新文档
+- [ ] 更新 README.md
+- [ ] 更新 CHANGELOG.md
+- [ ] 更新 PT_COMPAT_ANALYSIS.md
 
-### 7.3 准备 PR 描述
-- [ ] 总结所有改动
-- [ ] 列出解决的问题
-- [ ] 提供测试证据
-
-## 阶段 8: 最终检查
-
-### 8.1 代码质量检查
-- [ ] 运行 flake8
-- [ ] 修复所有警告
-- [ ] 确保代码风格一致
-
-### 8.2 性能检查
-- [ ] 对比导出速度
-- [ ] 确保没有性能回归
-
-### 8.3 提交 PR
+### Task 4.2: 提交代码
+- [ ] 提交所有修复
 - [ ] 创建 pull request
-- [ ] 填写详细的 PR 描述
-- [ ] 提供测试证据
-- [ ] 请求代码审查
+- [ ] 等待代码审查
 
-## 当前状态
+---
 
-- ✅ 阶段 1.1: 未开始
-- ✅ 阶段 1.2: 未开始
-- ✅ 阶段 1.3: 未开始（可选）
+## 验证循环
+
+### 循环 1: 与 dev 分支对比
+1. 运行 dev 分支的测试，确保它们通过
+2. 导出相同的 OTIO 文件到 AAF（dev 和 pt_compat）
+3. 对比两个 AAF 文件的结构
+4. 找出导致 +1 问题的具体代码
+5. 修复问题并重新测试
+6. 重复步骤 2-5，直到所有测试通过
+
+### 循环 2: 与 DaVinci Resolve 对比
+1. 使用 pt_compat 导出 AAF 文件
+2. 使用 DaVinci Resolve 打开并检查
+3. 对比 DaVinci Resolve 导出的 AAF 文件
+4. 确保与 DaVinci Resolve 的行为一致
+5. 修复任何不一致的地方
+6. 重复步骤 1-5，直到与 DaVinci Resolve 完全一致
+
+---
+
+## 关键指标
+
+### 测试通过率
+- **目标**: 100%
+- **当前**: 97.0% (64/66)
+- **差距**: 2 个测试失败
+
+### 代码覆盖率
+- **目标**: 85%+
+- **当前**: 50% (需要提高)
+
+### 代码风格
+- **目标**: 0 个 flake8 错误
+- **当前**: 需要检查
+
+---
+
+## 风险和缓解措施
+
+### 风险 1: source_range.start_time +1 问题难以定位
+**缓解措施**:
+- 深入分析测试代码
+- 对比 dev 和 pt_compat 分支的输出
+- 使用调试工具逐步跟踪代码执行
+
+### 风险 2: 与 DaVinci Resolve 的行为不一致
+**缓解措施**:
+- 使用 DaVinci Resolve 打开并检查 AAF 文件
+- 对比 DaVinci Resolve 导出的 AAF 文件
+- 确保与 DaVinci Resolve 的行为一致
+
+### 风险 3: 代码覆盖率不足
+**缓解措施**:
+- 添加更多测试用例
+- 确保所有代码路径都被测试覆盖
+
+---
+
+## 时间估计
+
+### Phase 1: 分析失败的测试
+- Task 1.1: 2 小时
+- Task 1.2: 2 小时
+- Task 1.3: 3 小时
+- **总计**: 7 小时
+
+### Phase 2: 修复问题
+- Task 2.1: 3 小时
+- Task 2.2: 2 小时
+- **总计**: 5 小时
+
+### Phase 3: 与 DaVinci Resolve 对比
+- Task 3.1: 2 小时
+- Task 3.2: 3 小时
+- Task 3.3: 2 小时
+- **总计**: 7 小时
+
+### Phase 4: 文档和提交
+- Task 4.1: 2 小时
+- Task 4.2: 1 小时
+- **总计**: 3 小时
+
+### 总计: 22 小时
+
+---
 
 ## 下一步行动
 
-1. **立即执行**: 开始阶段 1 - 建立验证循环
-   - 切换到 dev 分支
-   - 导出参考 AAF
-   - 切回 pt_compat 分支
-   - 运行 verification_loop.py
+### 立即执行
+1. 开始 Task 1.1: 分析 test_aaf_roundtrip_first_clip
+2. 开始 Task 1.2: 分析 test_transcribe_embed_dnx_data
+3. 开始 Task 1.3: 对比 dev 和 pt_compat 分支
 
-2. **然后根据结果**: 开始阶段 2 - 修复 MobID 问题
-   - 分析失败测试
-   - 确定修复策略
-   - 实施修复
+### 短期目标 (1-2 天)
+1. 完成 Phase 1: 分析失败的测试
+2. 完成 Phase 2: 修复问题
+3. 确保所有测试通过
 
-3. **最后**: 继续其他阶段
-   - 根据验证循环结果调整优先级
+### 中期目标 (3-5 天)
+1. 完成 Phase 3: 与 DaVinci Resolve 对比
+2. 确保与 DaVinci Resolve 的行为一致
+3. 完成 Phase 4: 文档和提交
+
+### 长期目标 (1 周)
+1. 创建 pull request
+2. 等待代码审查
+3. 根据反馈修复问题
+4. 合并到主分支

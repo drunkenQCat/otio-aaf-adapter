@@ -30,7 +30,7 @@ def export_aaf_from_otio(otio_path, output_path):
     print(f"正在导出 AAF: {otio_path} -> {output_path}")
     timeline = otio.adapters.read_from_file(otio_path)
     otio.adapters.write_to_file(timeline, output_path)
-    print(f"✓ 导出完成")
+    print("[OK] 导出完成")
 
 
 def compare_aaf_files(file1_path, file2_path, file1_name="File 1", file2_name="File 2"):
@@ -38,13 +38,13 @@ def compare_aaf_files(file1_path, file2_path, file1_name="File 1", file2_name="F
     print(f"\n{'='*80}")
     print(f"对比: {file1_name} vs {file2_name}")
     print(f"{'='*80}\n")
-    
-    with aaf2.open(file1_path, 'r') as aaf1, aaf2.open(file2_path, 'r') as aaf2:
+
+    with aaf2.open(file1_path, 'r') as aaf_file1, aaf2.open(file2_path, 'r') as aaf_file2:
         differences = []
-        
+
         # 1. 对比 Mob 数量
-        mobs1 = list(aaf1.content.mobs)
-        mobs2 = list(aaf2.content.mobs)
+        mobs1 = list(aaf_file1.content.mobs)
+        mobs2 = list(aaf_file2.content.mobs)
         
         print(f"Mob 数量:")
         print(f"  {file1_name}: {len(mobs1)}")
@@ -76,9 +76,9 @@ def compare_aaf_files(file1_path, file2_path, file1_name="File 1", file2_name="F
             # 检查前 16 字节（前缀）
             if mobid1_bytes[:32] != mobid2_bytes[:32]:
                 differences.append(f"CompositionMob MobID 前缀不匹配")
-                print(f"  ⚠️ 前缀不匹配")
+                print(f"  [WARN] 前缀不匹配")
             else:
-                print(f"  ✓ 前缀匹配")
+                print(f"  [OK] 前缀匹配")
         
         # 4. 对比 Timecode Slots
         if comp_mobs1 and comp_mobs2:
@@ -192,9 +192,9 @@ def compare_aaf_files(file1_path, file2_path, file1_name="File 1", file2_name="F
                 
                 if str(og1.operation.auid) != str(og2.operation.auid):
                     differences.append(f"OperationDef UUID 不匹配")
-                    print(f"    ⚠️ 不匹配")
+                    print(f"    [WARN] 不匹配")
                 else:
-                    print(f"    ✓ 匹配")
+                    print(f"    [OK] 匹配")
                 
                 # 检查 ConstantValue 参数
                 if og1.parameters and og2.parameters:
@@ -227,7 +227,7 @@ def compare_aaf_files(file1_path, file2_path, file1_name="File 1", file2_name="F
                 print(f"  {i}. {diff}")
             return False
         else:
-            print("✓ 所有关键属性匹配")
+            print("[OK] 所有关键属性匹配")
             return True
 
 
