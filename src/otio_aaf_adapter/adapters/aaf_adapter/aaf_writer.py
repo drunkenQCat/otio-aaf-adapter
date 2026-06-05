@@ -34,8 +34,12 @@ AAF_PARAMETERDEF_AVIDEFFECTID = uuid.UUID(
 AAF_PARAMETERDEF_AFX_FG_KEY_OPACITY_U = uuid.UUID(
     "8d56813d-847e-11d5-935a-50f857c10000")
 AAF_PARAMETERDEF_LEVEL = uuid.UUID("e4962320-2267-11d3-8a4c-0050040ef7d2")
+# Audio Gain uses "Amplitude" ParameterDef (matching DaVinci Resolve)
+AAF_PARAMETERDEF_AMPLITUDE = uuid.UUID("e4962321-2267-11d3-8a4c-0050040ef7d2")
 AAF_VVAL_EXTRAPOLATION_ID = uuid.UUID("0e24dd54-66cd-4f1a-b0a0-670ac3a7a0b3")
 AAF_OPERATIONDEF_SUBMASTER = uuid.UUID("f1db0f3d-8d64-11d3-80df-006008143e6f")
+# Audio Gain OperationDefinition (AAF standard MonoAudioGain, matching DaVinci Resolve)
+AAF_OPERATIONDEF_AUDIOGAIN = uuid.UUID("9d2ea894-0968-11d3-8a38-0050040ef7d2")
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +97,20 @@ class AAFValidationError(AAFAdapterError):
     pass
 
 
+def _patch_mob_id_prefix(mob):
+    """Rewrite MobID bytes 8-11 from pyaaf2 default (01010f20) to DaVinci Resolve (01010d43)."""
+    mid = mob.mob_id
+    # Convert to bytearray to allow modification
+    mid_bytes = bytearray(mid.bytes_le)
+    mid_bytes[8] = 0x01
+    mid_bytes[9] = 0x01
+    mid_bytes[10] = 0x0d
+    mid_bytes[11] = 0x43
+    # Create new MobID with modified bytes
+    mid.bytes_le = bytes(mid_bytes)
+    mob.mob_id = mid
+
+
 class AAFFileTranscriber:
     """
     AAFFileTranscriber
@@ -118,6 +136,16 @@ class AAFFileTranscriber:
         self.compositionmob = self.aaf_file.create.CompositionMob()
         self.compositionmob.name = input_otio.name
         self.compositionmob.usage = "Usage_TopLevel"
+        
+        # Set CompositionMob MobID to match DaVinci Resolve format
+        # Resolve uses: 060a2b34.01010101.01010f00.13000000.{unique}
+        import uuid
+        unique_part = uuid.uuid4().hex
+        # Format: 060a2b34-0101-0101-0101-0f0013000000 + 32 hex chars
+        new_mob_id = aaf2.mobid.MobID(f"060a2b34-0101-0101-0101-0f0013000000-{unique_part}")
+        self.compositionmob.mob_id = new_mob_id
+
+        # Append CompositionMob immediately to AAF file
         self.aaf_file.content.mobs.append(self.compositionmob)
         self._unique_mastermobs = {}
         self._unique_tapemobs = {}
@@ -135,6 +163,7 @@ class AAFFileTranscriber:
             mastermob = self.aaf_file.create.MasterMob()
             mastermob.name = otio_clip.name
             mastermob.mob_id = aaf2.mobid.MobID(mob_id)
+            # Append mastermob immediately to AAF file
             self.aaf_file.content.mobs.append(mastermob)
             self._unique_mastermobs[mob_id] = mastermob
 
@@ -176,6 +205,8 @@ class AAFFileTranscriber:
 
             tape_timecode_slot.segment.start = int(timecode_start)
             tape_timecode_slot.segment.length = int(timecode_length)
+            tape_timecode_slot["PhysicalTrackNumber"].value = 1
+            # Append tapemob immediately to AAF file
             self.aaf_file.content.mobs.append(tapemob)
             self._unique_tapemobs[mob_id] = tapemob
 
@@ -214,8 +245,13 @@ class AAFFileTranscriber:
             edit_rate = default_edit_rate
             start = 0
 
-        slot = self.compositionmob.create_timeline_slot(edit_rate)
-        slot.name = "TC"
+        # Calculate timecode length based on timeline duration
+        # +1 to match DaVinci Resolve's behavior (inclusive end frame)
+        timeline_duration = input_otio.duration()
+        timecode_length = int(timeline_duration.value) + 1
+
+        slot = self.compositionmob.create_timeline_slot(edit_rate, slot_id=1)
+        slot.name = ""
 
         # indicated that this is the primary timecode track
         slot['PhysicalTrackNumber'].value = 1
@@ -228,6 +264,7 @@ class AAFFileTranscriber:
         timecode.fps = int(_nearest_timecode(edit_rate))
         timecode.drop = False
         timecode.start = start
+        timecode.length = timecode_length
         slot.segment = timecode
 
     def _transcribe_user_comments(self, otio_item, target_mob):
@@ -557,7 +594,19 @@ class _TrackTranscriber:
 
     def aaf_filler(self, otio_gap):
         """Convert an otio Gap into an aaf Filler"""
-        length = int(otio_gap.visible_range().duration.value)
+        import math
+        # Convert duration from timeline rate to appropriate rate for media kind
+        gap_duration = otio_gap.visible_range().duration
+        if self.media_kind == "sound":
+            # For Pro Tools compatibility: ceil frame count for Filler (upward)
+            # This matches DaVinci Resolve's behavior where:
+            # - Clip durations use floor (downward rounding)
+            # - Gap/Filler durations use ceil (upward rounding)
+            # This ensures total sequence length stays consistent
+            frame_count = math.ceil(gap_duration.value)
+            length = int(frame_count * (self.audio_sampling_rate / gap_duration.rate))
+        else:
+            length = int(gap_duration.value)
         filler = self.aaf_file.create.Filler(self.media_kind, length)
         return filler
 
@@ -773,6 +822,7 @@ class _TrackTranscriber:
             otio_clip.media_reference.available_range.duration.value)
         tapemob_slot.segment.start = int(
             otio_clip.media_reference.available_range.start_time.value)
+        tapemob_slot["PhysicalTrackNumber"].value = 1
         return tapemob, tapemob_slot
 
     def transcribe_otio_aaf_descriptor(
@@ -827,10 +877,12 @@ class _TrackTranscriber:
             Returns a tuple of (FileMob, FileMobSlot)
         """
         filemob = self.aaf_file.create.SourceMob()
+        # Append filemob immediately to AAF file
         self.aaf_file.content.mobs.append(filemob)
 
         filemob.descriptor = self.default_descriptor(otio_clip)
         filemob_slot = filemob.create_timeline_slot(self.edit_rate)
+        filemob_slot["PhysicalTrackNumber"].value = 1
         filemob_clip = filemob.create_source_clip(
             slot_id=filemob_slot.slot_id,
             length=tapemob_slot.segment.length,
@@ -857,6 +909,7 @@ class _TrackTranscriber:
             mastermob_slot = (
                 mastermob.create_timeline_slot(edit_rate=self.edit_rate,
                                                slot_id=self._master_mob_slot_id))
+        mastermob_slot["PhysicalTrackNumber"].value = 1
         mastermob_clip = mastermob.create_source_clip(
             slot_id=mastermob_slot.slot_id,
             length=timecode_length,
@@ -919,8 +972,17 @@ class VideoTrackTranscriber(_TrackTranscriber):
 
         TimelineMobSlot --> Sequence
         """
+        # SlotID 1 is reserved for timecode, so video tracks start from SlotID 2
+        # Find the next available slot ID
+        existing_slot_ids = set(slot.slot_id for slot in self.compositionmob.slots)
+        slot_id = 2
+        while slot_id in existing_slot_ids:
+            slot_id += 1
+
         timeline_mobslot = self.compositionmob.create_timeline_slot(
-            edit_rate=self.edit_rate)
+            edit_rate=self.edit_rate
+        )
+        timeline_mobslot.slot_id = slot_id
         sequence = self.aaf_file.create.Sequence(media_kind=self.media_kind)
         sequence.components.value = []
         timeline_mobslot.segment = sequence
@@ -1067,53 +1129,89 @@ class AudioTrackTranscriber(_TrackTranscriber):
     def _master_mob_slot_id(self):
         return 2
 
+    @property
+    def audio_sampling_rate(self):
+        """Get the audio sampling rate from the first audio clip's WAV file."""
+        self._ensure_wav_info()
+        return self._cached_sample_rate
+
+    @property
+    def audio_bits_per_sample(self):
+        """Get the audio bit depth from the first audio clip's WAV file."""
+        self._ensure_wav_info()
+        return self._cached_bits_per_sample
+
+    def _ensure_wav_info(self):
+        """Read sample rate and bit depth from the first available WAV file."""
+        if hasattr(self, '_cached_sample_rate'):
+            return
+
+        import struct
+        import os
+        for child in self.otio_track:
+            if not hasattr(child, 'media_reference') or not child.media_reference:
+                continue
+            mr = child.media_reference
+            if not hasattr(mr, 'target_url') or not mr.target_url:
+                continue
+
+            # Handle various path formats
+            wav_path = mr.target_url
+            if wav_path.startswith("file:///"):
+                wav_path = wav_path[8:]
+                # Handle Windows paths: file:///C:/... -> C:\...
+                if len(wav_path) >= 2 and wav_path[1] == ':':
+                    wav_path = wav_path.replace("/", os.sep)
+            elif wav_path.startswith("file://"):
+                wav_path = wav_path[7:]
+                if len(wav_path) >= 2 and wav_path[1] == ':':
+                    wav_path = wav_path.replace("/", os.sep)
+
+            # Handle Windows extended-length path prefix \\?\
+            if wav_path.startswith("\\\\?\\"):
+                wav_path = wav_path[4:]
+
+            try:
+                with open(wav_path, 'rb') as wf:
+                    header = wf.read(4096)
+                if len(header) >= 44 and header[0:4] == b'RIFF' and header[8:12] == b'WAVE':
+                    pos = 12
+                    while pos + 8 <= len(header):
+                        chunk_id = header[pos:pos + 4]
+                        chunk_size = struct.unpack_from('<I', header, pos + 4)[0]
+                        if chunk_id == b'fmt ':
+                            self._cached_sample_rate = struct.unpack_from('<I', header, pos + 12)[0]
+                            self._cached_bits_per_sample = struct.unpack_from('<H', header, pos + 22)[0]
+                            return
+                        pos += 8 + chunk_size
+            except (OSError, FileNotFoundError):
+                continue
+
+        self._cached_sample_rate = 48000
+        self._cached_bits_per_sample = 16
+
     def aaf_sourceclip(self, otio_clip):
-        # Parameter Definition
-        typedef = self.aaf_file.dictionary.lookup_typedef("Rational")
-        param_def = self.aaf_file.create.ParameterDef(AAF_PARAMETERDEF_PAN,
-                                                      "Pan",
-                                                      "Pan",
-                                                      typedef)
-        self.aaf_file.dictionary.register_def(param_def)
-        interp_def = self.aaf_file.create.InterpolationDef(aaf2.misc.LinearInterp,
-                                                           "LinearInterp",
-                                                           "LinearInterp")
-        self.aaf_file.dictionary.register_def(interp_def)
-
-        # generate PointList for pan
-        varying_value = self.aaf_file.create.VaryingValue()
-        varying_value.parameterdef = param_def
-        varying_value["Interpolation"].value = interp_def
-
-        length = int(otio_clip.duration().value)
-
-        # default pan points are mid pan
-        default_points = [
-            {
-                "ControlPointSource": 2,
-                "Time": f"0/{length}",
-                "Value": "1/2",
-            },
-            {
-                "ControlPointSource": 2,
-                "Time": f"{length - 1}/{length}",
-                "Value": "1/2",
-            }
-        ]
-        cp_dict_list = otio_clip.metadata.get("AAF", {}).get("Pan", {}).get(
-            "ControlPoints", default_points)
-
-        for cp_dict in cp_dict_list:
-            point = self.aaf_file.create.ControlPoint()
-            point["Time"].value = aaf2.rational.AAFRational(cp_dict["Time"])
-            point["Value"].value = aaf2.rational.AAFRational(cp_dict["Value"])
-            point["ControlPointSource"].value = cp_dict["ControlPointSource"]
-            varying_value["PointList"].append(point)
-
-        opgroup = self.timeline_mobslot.segment
-        opgroup.parameters.append(varying_value)
-
-        return super().aaf_sourceclip(otio_clip)
+        """
+        Create a source clip for audio with proper edit rate handling.
+        Audio clips use the audio sampling rate (48000) as edit rate,
+        while the composition uses the timeline rate (24 fps).
+        
+        For Pro Tools compatibility, each audio clip is wrapped in an
+        Audio Gain OperationGroup (matching DaVinci Resolve's output structure).
+        """
+        # First, call the parent's aaf_sourceclip to create the basic SourceClip
+        # This handles all the mob creation (tapemob, filemob, mastermob)
+        source_clip = super().aaf_sourceclip(otio_clip)
+        
+        # Get the length of the source clip
+        length = source_clip.length
+        
+        # Create Audio Gain OperationGroup to wrap the SourceClip
+        # This matches DaVinci Resolve's output structure for Pro Tools compatibility
+        op_group = self._create_audio_gain_opgroup(source_clip, length)
+        
+        # Return the OperationGroup instead of the SourceClip
+        return op_group
 
     def _create_timeline_mobslot(self):
         """
@@ -1122,9 +1220,20 @@ class AudioTrackTranscriber(_TrackTranscriber):
 
         TimelineMobSlot --> OperationGroup --> Sequence
         """
+        # SlotID 1 = timecode, SlotID 2 = reserved for video.
+        # Audio tracks start from SlotID 3 (matching DaVinci Resolve layout).
+        existing_slot_ids = set(slot.slot_id for slot in self.compositionmob.slots)
+        slot_id = 3
+        while slot_id in existing_slot_ids:
+            slot_id += 1
+
         # TimelineMobSlot
         timeline_mobslot = self.compositionmob.create_sound_slot(
             edit_rate=self.edit_rate)
+        timeline_mobslot.slot_id = slot_id
+        # Set PhysicalTrackNumber for audio tracks (important for Pro Tools)
+        # Audio tracks should have PhysicalTrackNumber starting from 1
+        timeline_mobslot["PhysicalTrackNumber"].value = 1
         # OperationDefinition
         opdef = self.aaf_file.create.OperationDef(AAF_OPERATIONDEF_MONOAUDIOPAN,
                                                   "Audio Pan")
@@ -1145,36 +1254,147 @@ class AudioTrackTranscriber(_TrackTranscriber):
         return timeline_mobslot, sequence
 
     def default_descriptor(self, otio_clip):
-        descriptor = self.aaf_file.create.PCMDescriptor()
-        descriptor_dict = otio_clip.media_reference.metadata.get("AAF", {}).get(
-            "EssenceDescription", {})
+        """
+        Create a WAVEDescriptor for audio files.
+        This matches DaVinci Resolve's output format.
+        """
+        # Get audio info from media reference
+        media = otio_clip.media_reference
+        available_range = media.available_range if media else None
 
-        sample_rate = float(aaf2.rational.AAFRational(
-            descriptor_dict.get("SampleRate", 48000)))
-        descriptor_dict["AverageBPS"] = int(descriptor_dict.get("AverageBPS", 96000))
-        descriptor_dict["BlockAlign"] = int(descriptor_dict.get("BlockAlign", 2))
-        descriptor_dict["QuantizationBits"] = int(
-            descriptor_dict.get("QuantizationBits", 16)
-        )
+        # Calculate length in audio samples
+        if available_range:
+            # Duration in seconds * sample rate = samples
+            duration_seconds = available_range.duration.value / available_range.duration.rate
+            length_samples = int(duration_seconds * self.audio_sampling_rate)
+        else:
+            length_samples = 438000  # Default fallback
 
-        if isinstance(otio_clip.media_reference, otio.schema.ExternalReference):
-            locator = self.aaf_network_locator(otio_clip.media_reference)
+        # Use WAVEDescriptor for compatibility with DaVinci Resolve
+        descriptor = self.aaf_file.create.WAVEDescriptor()
+        descriptor["SampleRate"].value = self.audio_sampling_rate
+        descriptor["Length"].value = length_samples
+
+        # Add locator for external reference
+        if isinstance(media, otio.schema.ExternalReference) and media.target_url:
+            locator = self.aaf_network_locator(media)
+
+            # Use the target_url directly to match the original OTIO timeline
+            locator["URLString"].value = media.target_url
             descriptor["Locator"].append(locator)
 
-        descriptor_dict["AudioSamplingRate"] = float(aaf2.rational.AAFRational(
-            descriptor_dict.get("AudioSamplingRate", 48000))
-        )
-        descriptor_dict["Channels"] = int(descriptor_dict.get("Channels", 1))
-        descriptor_dict["SampleRate"] = sample_rate
-        descriptor_dict["Length"] = int(descriptor_dict.get("Length", int(
-            otio_clip.media_reference.available_range.duration.rescaled_to(
-                sample_rate).value
-        )))
-
-        # Finalize the descriptor with the rest of the properties
-        descriptor = self.transcribe_otio_aaf_descriptor(descriptor, descriptor_dict)
+        # Add Summary (WAV header bytes) - read from actual WAV file
+        # WAVEDescriptor requires Summary property, so always provide one
+        summary = self._build_wav_summary(media, length_samples)
+        if summary:
+            descriptor["Summary"].value = summary
+        else:
+            # Provide default Summary if WAV file can't be read
+            descriptor["Summary"].value = self._build_default_wav_summary(length_samples)
 
         return descriptor
+
+    def _build_wav_summary(self, media, length_samples):
+        """Read actual WAV file and build a standardized 44-byte Summary header."""
+        import struct
+        if not isinstance(media, otio.schema.ExternalReference) or not media.target_url:
+            return None
+
+        # Handle various path formats
+        wav_path = media.target_url
+        if wav_path.startswith("file:///"):
+            wav_path = wav_path[8:]
+            # Handle Windows paths: file:///C:/... -> C:\...
+            if len(wav_path) >= 2 and wav_path[1] == ':':
+                wav_path = wav_path.replace("/", os.sep)
+        elif wav_path.startswith("file://"):
+            wav_path = wav_path[7:]
+            if len(wav_path) >= 2 and wav_path[1] == ':':
+                wav_path = wav_path.replace("/", os.sep)
+
+        # Handle Windows extended-length path prefix \\?\
+        if wav_path.startswith("\\\\?\\"):
+            wav_path = wav_path[4:]
+
+        try:
+            with open(wav_path, 'rb') as f:
+                raw = f.read(4096)
+        except (OSError, FileNotFoundError) as e:
+            print(f"Warning: Could not read WAV file {wav_path}: {e}")
+            return None
+
+        if len(raw) < 44 or raw[0:4] != b'RIFF' or raw[8:12] != b'WAVE':
+            return None
+
+        riff_size = struct.unpack_from('<I', raw, 4)[0]
+
+        # Walk chunks to find fmt and data
+        pos = 12
+        channels = 1
+        sample_rate = self.audio_sampling_rate
+        byte_rate = sample_rate
+        block_align = 2
+        bits_per_sample = 16
+        data_size = 0
+
+        while pos + 8 <= len(raw):
+            chunk_id = raw[pos:pos + 4]
+            chunk_size = struct.unpack_from('<I', raw, pos + 4)[0]
+            if chunk_id == b'fmt ':
+                channels = struct.unpack_from('<H', raw, pos + 10)[0]
+                sample_rate = struct.unpack_from('<I', raw, pos + 12)[0]
+                byte_rate = struct.unpack_from('<I', raw, pos + 16)[0]
+                block_align = struct.unpack_from('<H', raw, pos + 20)[0]
+                bits_per_sample = struct.unpack_from('<H', raw, pos + 22)[0]
+            elif chunk_id == b'data':
+                data_size = chunk_size
+            pos += 8 + chunk_size
+
+        # Standardize: write PCM format (1) with fmt chunk size 16
+        summary = bytearray(44)
+        struct.pack_into('<4s', summary, 0, b'RIFF')
+        struct.pack_into('<I', summary, 4, riff_size)
+        struct.pack_into('<4s', summary, 8, b'WAVE')
+        struct.pack_into('<4s', summary, 12, b'fmt ')
+        struct.pack_into('<I', summary, 16, 16)
+        struct.pack_into('<H', summary, 20, 1)  # PCM
+        struct.pack_into('<H', summary, 22, channels)
+        struct.pack_into('<I', summary, 24, sample_rate)
+        struct.pack_into('<I', summary, 28, byte_rate)
+        struct.pack_into('<H', summary, 32, block_align)
+        struct.pack_into('<H', summary, 34, bits_per_sample)
+        struct.pack_into('<4s', summary, 36, b'data')
+        struct.pack_into('<I', summary, 40, data_size)
+
+        return summary
+
+    def _build_default_wav_summary(self, length_samples):
+        """Build a default WAV Summary header when actual WAV file is unavailable."""
+        import struct
+        channels = 1
+        sample_rate = self.audio_sampling_rate
+        bits_per_sample = self.audio_bits_per_sample
+        byte_rate = sample_rate * channels * bits_per_sample // 8
+        block_align = channels * bits_per_sample // 8
+        data_size = length_samples * block_align
+        riff_size = 36 + data_size
+
+        summary = bytearray(44)
+        struct.pack_into('<4s', summary, 0, b'RIFF')
+        struct.pack_into('<I', summary, 4, riff_size)
+        struct.pack_into('<4s', summary, 8, b'WAVE')
+        struct.pack_into('<4s', summary, 12, b'fmt ')
+        struct.pack_into('<I', summary, 16, 16)
+        struct.pack_into('<H', summary, 20, 1)  # PCM
+        struct.pack_into('<H', summary, 22, channels)
+        struct.pack_into('<I', summary, 24, sample_rate)
+        struct.pack_into('<I', summary, 28, byte_rate)
+        struct.pack_into('<H', summary, 32, block_align)
+        struct.pack_into('<H', summary, 34, bits_per_sample)
+        struct.pack_into('<4s', summary, 36, b'data')
+        struct.pack_into('<I', summary, 40, data_size)
+
+        return summary
 
     def _transition_parameters(self):
         """
@@ -1194,6 +1414,121 @@ class AudioTrackTranscriber(_TrackTranscriber):
             self.aaf_file.dictionary.lookup_parameterdef("ParameterDef_Level"))
 
         return [param_def_level], level
+
+    def aaf_sourceclip(self, otio_clip):
+        """
+        Create a source clip for audio with proper edit rate handling.
+        Audio clips use the audio sampling rate (48000) as edit rate,
+        while the composition uses the timeline rate (24 fps).
+
+        For Pro Tools compatibility, each audio clip is wrapped in an
+        Audio Gain OperationGroup (matching DaVinci Resolve's output structure).
+        """
+        tapemob, tapemob_slot = self._create_tapemob(otio_clip)
+        filemob, filemob_slot = self._create_filemob(otio_clip, tapemob, tapemob_slot)
+        mastermob, mastermob_slot = self._create_mastermob(
+            otio_clip, filemob, filemob_slot
+        )
+
+        # We need both `start_time` and `duration`
+        # Here `start` is the offset between `first` and `in` values.
+        offset = (
+            otio_clip.visible_range().start_time
+            - otio_clip.available_range().start_time
+        )
+
+        # Convert duration from timeline rate (24 fps) to audio sampling rate (48000 Hz)
+        # For Pro Tools compatibility: round frame count first, then convert to samples
+        # This matches DaVinci Resolve's behavior (clean integer sample counts)
+        visible_duration = otio_clip.visible_range().duration
+        if self.media_kind == "sound":
+            # Use floor (int) for frame count - matches DaVinci Resolve's behavior
+            frame_count = int(visible_duration.value)
+            length = int(frame_count * (self.audio_sampling_rate / visible_duration.rate))
+            start_frame = int(offset.value)
+            start = int(start_frame * (self.audio_sampling_rate / offset.rate))
+        else:
+            start = int(offset.value)
+            length = int(visible_duration.value)
+
+        # When the SourceClip is wrapped in an OperationGroup, the OperationGroup
+        # handles timeline positioning. The inner SourceClip should start at 0
+        # (reference from the beginning of the MasterMob).
+        # This matches DaVinci Resolve's behavior: StartTime=0 for OG input clips.
+        compmob_clip = self.compositionmob.create_source_clip(
+            slot_id=self.timeline_mobslot.slot_id,
+            start=0,
+            length=int(length),
+            media_kind=self.media_kind,
+        )
+        compmob_clip.mob = mastermob
+        compmob_clip.slot = mastermob_slot
+        compmob_clip.slot_id = mastermob_slot.slot_id
+
+        # Wrap the SourceClip in an Audio Gain OperationGroup
+        # This matches DaVinci Resolve's output structure for Pro Tools compatibility
+        op_group = self._create_audio_gain_opgroup(compmob_clip, length)
+        return op_group
+
+    def _create_audio_gain_opgroup(self, source_clip, length):
+        """
+        Create an Audio Gain OperationGroup wrapping a SourceClip.
+        This matches DaVinci Resolve's output structure for Pro Tools compatibility.
+
+        Args:
+            source_clip: The SourceClip to wrap
+            length: The length in audio samples
+
+        Returns:
+            OperationGroup containing the SourceClip with a default Audio Gain effect
+        """
+        import aaf2.rational
+
+        # Create or lookup the Audio Gain OperationDefinition
+        op_def = self.aaf_file.create.OperationDef(
+            AAF_OPERATIONDEF_AUDIOGAIN, "Audio Gain"
+        )
+        self.aaf_file.dictionary.register_def(op_def)
+        op_def.media_kind = self.media_kind
+        datadef = self.aaf_file.dictionary.lookup_datadef(self.media_kind)
+
+        # Required properties for OperationDefinition
+        op_def["IsTimeWarp"].value = False
+        op_def["Bypass"].value = 0
+        op_def["NumberInputs"].value = 1
+        op_def["OperationCategory"].value = "OperationCategory_Effect"
+        op_def["DataDefinition"].value = datadef
+
+        # Create the Amplitude ParameterDef if not already registered
+        # DaVinci Resolve uses "Amplitude" (not "ParameterDef_Level") for Audio Gain
+        try:
+            param_def_level = self.aaf_file.dictionary.lookup_parameterdef("Amplitude")
+        except Exception:
+            def_level_typedef = self.aaf_file.dictionary.lookup_typedef("Rational")
+            param_def_level = self.aaf_file.create.ParameterDef(
+                AAF_PARAMETERDEF_AMPLITUDE, "Amplitude", "", def_level_typedef
+            )
+            self.aaf_file.dictionary.register_def(param_def_level)
+
+        # Create ConstantValue for the gain parameter
+        # Value is 536870912/536870912 = 1.0 (no attenuation)
+        # This matches DaVinci Resolve's default Audio Gain value
+        const_value = self.aaf_file.create.ConstantValue()
+        const_value.parameterdef = param_def_level
+        const_value["Value"].value = aaf2.rational.AAFRational(536870912, 536870912)
+
+        # Create the OperationGroup
+        op_group = self.aaf_file.create.OperationGroup(op_def, length)
+        op_group.media_kind = self.media_kind
+        op_group["DataDefinition"].value = datadef
+
+        # Add the SourceClip as input
+        op_group.segments.append(source_clip)
+
+        # Add the ConstantValue parameter
+        op_group["Parameters"].append(const_value)
+
+        return op_group
 
 
 class __check:
