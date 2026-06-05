@@ -196,9 +196,9 @@ class AAFFileTranscriber:
                 timecode_fps=round(otio_clip.visible_range().duration.rate),
                 drop_frame=(edit_rate != timecode_fps)
             )
-            timecode_start = int(
-                otio_clip.media_reference.available_range.start_time.value
-            )
+            # SourceMob Timecode start should be 0, not available_range.start_time
+            # because source_clip.start is already relative to SourceMob
+            timecode_start = 0
             timecode_length = int(
                 otio_clip.media_reference.available_range.duration.value
             )
@@ -1195,21 +1195,67 @@ class AudioTrackTranscriber(_TrackTranscriber):
         Create a source clip for audio with proper edit rate handling.
         Audio clips use the audio sampling rate (48000) as edit rate,
         while the composition uses the timeline rate (24 fps).
-        
+
         For Pro Tools compatibility, each audio clip is wrapped in an
         Audio Gain OperationGroup (matching DaVinci Resolve's output structure).
         """
+        # Parameter Definition for Pan
+        typedef = self.aaf_file.dictionary.lookup_typedef("Rational")
+        param_def = self.aaf_file.create.ParameterDef(AAF_PARAMETERDEF_PAN,
+                                                      "Pan",
+                                                      "Pan",
+                                                      typedef)
+        self.aaf_file.dictionary.register_def(param_def)
+        interp_def = self.aaf_file.create.InterpolationDef(aaf2.misc.LinearInterp,
+                                                           "LinearInterp",
+                                                           "LinearInterp")
+        self.aaf_file.dictionary.register_def(interp_def)
+
+        # generate PointList for pan
+        varying_value = self.aaf_file.create.VaryingValue()
+        varying_value.parameterdef = param_def
+        varying_value["Interpolation"].value = interp_def
+
+        length = int(otio_clip.duration().value)
+
+        # default pan points are mid pan
+        default_points = [
+            {
+                "ControlPointSource": 2,
+                "Time": f"0/{length}",
+                "Value": "1/2",
+            },
+            {
+                "ControlPointSource": 2,
+                "Time": f"{length - 1}/{length}",
+                "Value": "1/2",
+            }
+        ]
+        cp_dict_list = otio_clip.metadata.get("AAF", {}).get("Pan", {}).get(
+            "ControlPoints", default_points)
+
+        for cp_dict in cp_dict_list:
+            point = self.aaf_file.create.ControlPoint()
+            point["Time"].value = aaf2.rational.AAFRational(cp_dict["Time"])
+            point["Value"].value = aaf2.rational.AAFRational(cp_dict["Value"])
+            point["ControlPointSource"].value = cp_dict["ControlPointSource"]
+            varying_value["PointList"].append(point)
+
+        # Add pan parameters to the outer OperationGroup (Audio Pan)
+        opgroup = self.timeline_mobslot.segment
+        opgroup["Parameters"].append(varying_value)
+
         # First, call the parent's aaf_sourceclip to create the basic SourceClip
         # This handles all the mob creation (tapemob, filemob, mastermob)
         source_clip = super().aaf_sourceclip(otio_clip)
-        
+
         # Get the length of the source clip
         length = source_clip.length
-        
+
         # Create Audio Gain OperationGroup to wrap the SourceClip
         # This matches DaVinci Resolve's output structure for Pro Tools compatibility
         op_group = self._create_audio_gain_opgroup(source_clip, length)
-        
+
         # Return the OperationGroup instead of the SourceClip
         return op_group
 
@@ -1414,61 +1460,6 @@ class AudioTrackTranscriber(_TrackTranscriber):
             self.aaf_file.dictionary.lookup_parameterdef("ParameterDef_Level"))
 
         return [param_def_level], level
-
-    def aaf_sourceclip(self, otio_clip):
-        """
-        Create a source clip for audio with proper edit rate handling.
-        Audio clips use the audio sampling rate (48000) as edit rate,
-        while the composition uses the timeline rate (24 fps).
-
-        For Pro Tools compatibility, each audio clip is wrapped in an
-        Audio Gain OperationGroup (matching DaVinci Resolve's output structure).
-        """
-        tapemob, tapemob_slot = self._create_tapemob(otio_clip)
-        filemob, filemob_slot = self._create_filemob(otio_clip, tapemob, tapemob_slot)
-        mastermob, mastermob_slot = self._create_mastermob(
-            otio_clip, filemob, filemob_slot
-        )
-
-        # We need both `start_time` and `duration`
-        # Here `start` is the offset between `first` and `in` values.
-        offset = (
-            otio_clip.visible_range().start_time
-            - otio_clip.available_range().start_time
-        )
-
-        # Convert duration from timeline rate (24 fps) to audio sampling rate (48000 Hz)
-        # For Pro Tools compatibility: round frame count first, then convert to samples
-        # This matches DaVinci Resolve's behavior (clean integer sample counts)
-        visible_duration = otio_clip.visible_range().duration
-        if self.media_kind == "sound":
-            # Use floor (int) for frame count - matches DaVinci Resolve's behavior
-            frame_count = int(visible_duration.value)
-            length = int(frame_count * (self.audio_sampling_rate / visible_duration.rate))
-            start_frame = int(offset.value)
-            start = int(start_frame * (self.audio_sampling_rate / offset.rate))
-        else:
-            start = int(offset.value)
-            length = int(visible_duration.value)
-
-        # When the SourceClip is wrapped in an OperationGroup, the OperationGroup
-        # handles timeline positioning. The inner SourceClip should start at 0
-        # (reference from the beginning of the MasterMob).
-        # This matches DaVinci Resolve's behavior: StartTime=0 for OG input clips.
-        compmob_clip = self.compositionmob.create_source_clip(
-            slot_id=self.timeline_mobslot.slot_id,
-            start=0,
-            length=int(length),
-            media_kind=self.media_kind,
-        )
-        compmob_clip.mob = mastermob
-        compmob_clip.slot = mastermob_slot
-        compmob_clip.slot_id = mastermob_slot.slot_id
-
-        # Wrap the SourceClip in an Audio Gain OperationGroup
-        # This matches DaVinci Resolve's output structure for Pro Tools compatibility
-        op_group = self._create_audio_gain_opgroup(compmob_clip, length)
-        return op_group
 
     def _create_audio_gain_opgroup(self, source_clip, length):
         """
