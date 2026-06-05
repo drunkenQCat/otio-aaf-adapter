@@ -1,0 +1,44 @@
+{
+  "directory1": "verification_results\\dev",
+  "directory2": "verification_results\\pt_compat",
+  "total_files": 2,
+  "files_with_differences": 1,
+  "total_differences": 2,
+  "reports": [
+    {
+      "file1": "verification_results\\dev\\gaps.aaf",
+      "file2": "verification_results\\pt_compat\\gaps.aaf",
+      "differences": [],
+      "total_differences": 0,
+      "summary": {
+        "tracks": 0,
+        "clips": 0
+      }
+    },
+    {
+      "file1": "verification_results\\dev\\one_audio_clip.aaf",
+      "file2": "verification_results\\pt_compat\\one_audio_clip.aaf",
+      "differences": [
+        {
+          "type": "clip_source_range",
+          "track": 0,
+          "clip": 0,
+          "value1": "TimeRange(RationalTime(1.728e+08, 48000), RationalTime(1.44e+06, 48000))",
+          "value2": "TimeRange(RationalTime(86400, 24), RationalTime(720, 24))"
+        },
+        {
+          "type": "clip_duration",
+          "track": 0,
+          "clip": 0,
+          "value1": "RationalTime(1.44e+06, 48000)",
+          "value2": "RationalTime(720, 24)"
+        }
+      ],
+      "total_differences": 2,
+      "summary": {
+        "tracks": 1,
+        "clips": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.8, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\TechProjects\Timeline_Projects\otio-aaf-adapter
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 66 items
+
+tests\test_aaf_adapter.py .............................................. [ 69%]
+....................                                                     [100%]
+
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.12.8-final-0 _______________
+
+Name                                                         Stmts   Miss  Cover
+--------------------------------------------------------------------------------
+src\otio_aaf_adapter\__init__.py                                 1      0   100%
+src\otio_aaf_adapter\adapters\__init__.py                        0      0   100%
+src\otio_aaf_adapter\adapters\aaf_adapter\__init__.py            0      0   100%
+src\otio_aaf_adapter\adapters\aaf_adapter\aaf_writer.py        807    102    87%
+src\otio_aaf_adapter\adapters\aaf_adapter\hooks.py              25      3    88%
+src\otio_aaf_adapter\adapters\advanced_authoring_format.py     979    793    19%
+--------------------------------------------------------------------------------
+TOTAL                                                         1812    898    50%
+======================= 66 passed in 135.12s (0:02:15) ========================

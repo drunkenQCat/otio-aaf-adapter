@@ -1,0 +1,41 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.8, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\TechProjects\Timeline_Projects\otio-aaf-adapter
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 52 items
+
+tests\test_aaf_adapter.py .................................FFF.FFFFFFF.. [ 88%]
+......                                                                   [100%]
+
+============================== warnings summary ===============================
+tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_roundtrip_first_clip
+  C:\TechProjects\Timeline_Projects\otio-aaf-adapter\.venv\Lib\site-packages\pydub\utils.py:14: DeprecationWarning: 'audioop' is deprecated and slated for removal in Python 3.13
+    import audioop
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.12.8-final-0 _______________
+
+Name                                                         Stmts   Miss  Cover
+--------------------------------------------------------------------------------
+src\otio_aaf_adapter\__init__.py                                 1      0   100%
+src\otio_aaf_adapter\adapters\__init__.py                        0      0   100%
+src\otio_aaf_adapter\adapters\aaf_adapter\__init__.py            0      0   100%
+src\otio_aaf_adapter\adapters\aaf_adapter\aaf_writer.py        717    150    79%
+src\otio_aaf_adapter\adapters\advanced_authoring_format.py     778    680    13%
+src\otio_aaf_adapter\audio_transcoder.py                       121     94    22%
+--------------------------------------------------------------------------------
+TOTAL                                                         1617    924    43%
+=========================== short test summary info ===========================
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_roundtrip_first_clip
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_writer_duplicates
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_writer_external_reference
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_writer_global_start_time
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_writer_nested_stack
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_writer_nesting - A...
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_writer_nometadata
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_writer_simple - As...
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_writer_transitions
+FAILED tests/test_aaf_adapter.py::AAFWriterTests::test_aaf_writer_user_comments
+================== 10 failed, 42 passed, 1 warning in 55.47s ==================
