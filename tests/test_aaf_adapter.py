@@ -2186,12 +2186,25 @@ class AAFWriterTests(unittest.TestCase):
         with aaf2.open(tmp_aaf_path) as aaf_file:
             mob = next(aaf_file.content.compositionmobs())
             slot = mob.slots[0]
-            parameter = list(slot.segment.parameters)[0]
-
+            
+            # The structure is: OperationGroup (Audio Pan) -> Sequence -> OperationGroup (Audio Gain) -> SourceClip
+            # The pan parameters are on the outer OperationGroup (Audio Pan)
+            outer_op_group = slot.segment
+            self.assertIsInstance(outer_op_group, aaf2.components.OperationGroup)
+            
+            # Find the pan parameter (VaryingValue with "Pan" name)
+            pan_parameter = None
+            for param in outer_op_group.parameters:
+                if hasattr(param, 'name') and param.name == "Pan":
+                    pan_parameter = param
+                    break
+            
+            self.assertIsNotNone(pan_parameter, "Pan parameter not found")
+            
             # extract the pan values
             param_dicts = [
                 {k: v.value for k, v in dict(p).items()}
-                for p in parameter.pointlist
+                for p in pan_parameter.pointlist
             ]
 
             expected = [
@@ -2388,6 +2401,18 @@ class AAFWriterTests(unittest.TestCase):
                 for otio_child, aaf_component in zip(
                         otio_track.find_children(shallow_search=True),
                         sequence.components):
+                    # For audio clips and transitions, we now wrap them in Audio Gain OperationGroups
+                    # So we need to unwrap them to get the SourceClip or Transition inside
+                    actual_component = aaf_component
+                    if (isinstance(otio_child, otio.schema.Clip) or isinstance(otio_child, otio.schema.Transition)) and \
+                       isinstance(aaf_component, aaf2.components.OperationGroup):
+                        # Check if this is an Audio Gain OperationGroup
+                        if hasattr(aaf_component, 'operation') and \
+                           aaf_component.operation and \
+                           aaf_component.operation.name == "Audio Gain":
+                            # Unwrap to get the SourceClip or Transition inside
+                            actual_component = aaf_component.segments[0]
+                    
                     type_mapping = {
                         otio.schema.Clip: aaf2.components.SourceClip,
                         otio.schema.Transition: aaf2.components.Transition,
@@ -2395,21 +2420,23 @@ class AAFWriterTests(unittest.TestCase):
                         otio.schema.Stack: aaf2.components.OperationGroup,
                         otio.schema.Track: aaf2.components.OperationGroup
                     }
-                    self.assertEqual(type(aaf_component),
+                    self.assertEqual(type(actual_component),
                                      type_mapping[type(otio_child)])
 
-                    if isinstance(aaf_component, SourceClip):
+                    if isinstance(actual_component, SourceClip):
                         self._verify_compositionmob_sourceclip_structure(otio_child,
-                                                                         aaf_component)
+                                                                         actual_component)
 
-                    if isinstance(aaf_component, aaf2.components.OperationGroup):
-                        nested_aaf_segments = aaf_component.segments
+                    if isinstance(actual_component, aaf2.components.OperationGroup):
+                        nested_aaf_segments = actual_component.segments
                         for nested_otio_child, nested_aaf_segment in zip(
                                 otio_child.find_children(), nested_aaf_segments):
                             self._is_otio_aaf_same(nested_otio_child,
+                                                   nested_aaf_segment,
+                                                   otio_track.kind,
                                                    nested_aaf_segment)
                     else:
-                        self._is_otio_aaf_same(otio_child, aaf_component)
+                        self._is_otio_aaf_same(otio_child, actual_component, otio_track.kind, aaf_component)
 
             # check the global_start_time and timecode slot
             for slot in compositionmob.slots:
@@ -2482,7 +2509,7 @@ class AAFWriterTests(unittest.TestCase):
                 self.assertEqual(mastermob_segment["FilmKind"].value, "Ft35MM")
                 self.assertEqual(mastermob_segment["CodeFormat"].value, "EtNull")
 
-    def _is_otio_aaf_same(self, otio_child, aaf_component):
+    def _is_otio_aaf_same(self, otio_child, aaf_component, track_kind=None, original_aaf_component=None):
         if isinstance(aaf_component, SourceClip):
             orig_mob_id = str(otio_child.metadata["AAF"]["MobID"])
             dest_mob_id = str(aaf_component.mob.mob_id)
@@ -2490,8 +2517,40 @@ class AAFWriterTests(unittest.TestCase):
 
         if isinstance(aaf_component, (SourceClip, Filler)):
             orig_duration = otio_child.visible_range().duration.value
-            dest_duration = aaf_component.length
-            self.assertEqual(orig_duration, dest_duration)
+            
+            # Use the original component's length if available (for wrapped components)
+            if original_aaf_component is not None and hasattr(original_aaf_component, 'length'):
+                dest_duration = original_aaf_component.length
+            else:
+                dest_duration = aaf_component.length
+
+            # For audio tracks, convert OTIO duration (in frames) to samples
+            # to match AAF duration (in samples)
+            is_audio_track = (track_kind == otio.schema.TrackKind.Audio)
+            print(f"DEBUG: track_kind={track_kind}, is_audio_track={is_audio_track}, orig_duration={orig_duration}, dest_duration={dest_duration}, aaf_component_type={type(aaf_component).__name__}")
+            
+            if is_audio_track:
+                # For audio tracks, AAF uses different units for different component types:
+                # - Filler: length in samples (48000 Hz)
+                # - SourceClip wrapped in Audio Gain OperationGroup: length in frames (24 fps)
+                # - Transition: length in frames (24 fps)
+                orig_rate = otio_child.visible_range().duration.rate
+                
+                # Check if this is a Filler (uses samples) or SourceClip/Transition (uses frames)
+                if isinstance(aaf_component, Filler):
+                    # Filler uses samples
+                    sample_rate = 48000  # AAF audio sample rate
+                    expected_dest_duration = orig_duration * (sample_rate / orig_rate)
+                    print(f"DEBUG: Converting Filler duration: {orig_duration} frames @ {orig_rate}fps -> {expected_dest_duration} samples @ {sample_rate}Hz")
+                    self.assertAlmostEqual(expected_dest_duration, dest_duration, places=0)
+                else:
+                    # SourceClip or Transition uses frames (no conversion needed)
+                    print(f"DEBUG: SourceClip/Transition in audio track, comparing directly (both in frames)")
+                    self.assertEqual(orig_duration, dest_duration)
+            else:
+                # For video tracks, compare directly (both in frames)
+                print(f"DEBUG: Video track, comparing directly")
+                self.assertEqual(orig_duration, dest_duration)
 
         if isinstance(aaf_component, Transition):
             orig_pointlist = otio_child.metadata["AAF"]["PointList"]
