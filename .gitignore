@@ -127,3 +127,22 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Temporary files
+*.log
+*.txt
+*.aaf
+*.otio
+*.bat
+*.ps1
+
+# Temporary test outputs
+result.aaf
+test_export.aaf
+test_output.aaf
+inspect_output.txt
+pytest_output.txt
+temp_diff*.txt
+
+# Converted audio files (generated during testing)
+test_data/converted/
